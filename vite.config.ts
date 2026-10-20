@@ -57,7 +57,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: 'trilhapy-ios-audio-v7',
+        cacheId: 'trilhapy-theory-card-v8',
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}'],
         navigateFallback: 'index.html',
@@ -66,7 +66,7 @@ export default defineConfig({
             urlPattern: /\/tts\/.*\.mp3$/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'trilhapy-neural-mp3-v7',
+              cacheName: 'trilhapy-neural-mp3-v8',
               expiration: { maxEntries: 2500, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },

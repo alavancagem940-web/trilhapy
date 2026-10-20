@@ -6,6 +6,7 @@ import {
   checkAnswer,
   findExercise,
   iterUnits,
+  spokenTheory,
   validateCurriculum,
 } from './lessons'
 
@@ -155,5 +156,32 @@ describe('currículo', () => {
     const right = checkAnswer(exercise, 'nome = "Ana"')
     expect(right.message).toBe(exercise.explainCorrect)
     expect(right.message.toLowerCase()).not.toMatch(/ainda não|você digitou/)
+  })
+
+  it('a voz da teoria lê o card visível, não o resumo theory.speak', () => {
+    const unit = LEVELS[0]?.units[0]
+    expect(unit?.id).toBe('n1_logica')
+    if (!unit) return
+    const spoken = spokenTheory(unit)
+    expect(unit.theory.concept).toContain(
+      'Programar começa com lógica: uma lista de passos claros. O Python não adivinha o que você quis dizer.',
+    )
+    expect(spoken.startsWith(THEORY_CARD_TITLE)).toBe(true)
+    expect(spoken).toContain('O computador só faz o que está escrito, na ordem dos passos.')
+    expect(spoken).toContain('1. Conceito.')
+    expect(spoken).toContain(unit.theory.concept)
+    expect(spoken).toContain('2. Sintaxe.')
+    expect(spoken).toContain(unit.theory.syntax)
+    expect(spoken).toContain('3. Exemplos.')
+    expect(spoken).toContain('Uma regra do dia a dia virando código')
+    expect(spoken).toContain('esta_chovendo = True')
+    expect(spoken).toContain('Saída.')
+    expect(spoken).toContain('leve o guarda-chuva')
+    expect(spoken).toContain('A ordem das linhas muda o resultado')
+    expect(spoken).toContain('primeiro o pão')
+    expect(spoken).toContain('depois o recheio')
+    expect(spoken).not.toBe(unit.theory.speak)
+    expect(spoken.indexOf('1. Conceito.')).toBeLessThan(spoken.indexOf('2. Sintaxe.'))
+    expect(spoken.indexOf('2. Sintaxe.')).toBeLessThan(spoken.indexOf('3. Exemplos.'))
   })
 })

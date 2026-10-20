@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { LEVELS } from './lessons'
+import { LEVELS, spokenTheory } from './lessons'
+import { toSpokenText } from './speech-persona'
 import {
   DEFAULT_VOICE_ID,
   DEFAULT_VOICE_WHY,
@@ -56,8 +57,11 @@ describe('voz neural Microsoft', () => {
     expect(lines.some((line) => line.kind === 'prompt')).toBe(true)
     const first = LEVELS[0]?.units[0]
     expect(first?.theory.concept.startsWith('Sss...')).toBe(false)
-    const theorySpeak = first?.theory.speak ?? ''
-    expect(lines.some((line) => line.spoken === theorySpeak.replace(/\s+/g, ' ').trim())).toBe(true)
+    expect(first).toBeTruthy()
+    if (!first) return
+    expect(lines.some((line) => line.spoken === toSpokenText(spokenTheory(first)))).toBe(true)
+    expect(lines.some((line) => line.spoken.includes(first.theory.concept))).toBe(true)
+    expect(lines.some((line) => line.spoken === first.theory.speak.trim())).toBe(false)
   })
 
   it('gera hash estável para o MPEG empacotado', async () => {

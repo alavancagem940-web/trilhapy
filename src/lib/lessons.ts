@@ -14,6 +14,7 @@ export {
   checkAnswer,
   spokenPrompt,
   spokenTheory,
+  spokenVisibleCode,
   type CheckResult,
   type Exercise,
   type ExerciseType,

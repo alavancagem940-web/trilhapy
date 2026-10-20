@@ -60,8 +60,39 @@ export function spokenPrompt(exercise: Exercise): string {
   return exercise.speak ?? exercise.prompt
 }
 
+/** Reads code as it appears on the card, noting indented lines. */
+export function spokenVisibleCode(code: string): string {
+  return code
+    .split('\n')
+    .map((line) => {
+      if (!line.trim()) return ''
+      if (/^ +/.test(line)) return `recuado, ${line.trim()}`
+      return line.trim()
+    })
+    .filter(Boolean)
+    .join('. ')
+}
+
+/**
+ * Spoken copy of the on-screen Explicação Teórica Prática, in card order.
+ * Does not use `theory.speak` (that field is a short leftover summary).
+ */
 export function spokenTheory(unit: Unit): string {
-  return unit.theory.speak
+  const theory = unit.theory
+  const parts: string[] = [THEORY_CARD_TITLE]
+  if (unit.subtitle.trim()) parts.push(unit.subtitle)
+  parts.push('1. Conceito.', theory.concept)
+  parts.push('2. Sintaxe.', theory.syntax)
+  if (theory.syntaxCode.trim()) parts.push(spokenVisibleCode(theory.syntaxCode))
+  parts.push('3. Exemplos.')
+  for (const example of theory.examples) {
+    if (example.caption.trim()) parts.push(example.caption)
+    if (example.code.trim()) parts.push(spokenVisibleCode(example.code))
+    if (example.output?.trim()) {
+      parts.push('Saída.', spokenVisibleCode(example.output))
+    }
+  }
+  return parts.join(' ')
 }
 
 export function theory(spec: Theory): Theory {

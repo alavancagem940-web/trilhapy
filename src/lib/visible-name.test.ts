@@ -33,10 +33,10 @@ describe('nome visível', () => {
     expect(xml).not.toContain('web.alavancagem940')
   })
 
-  it('service worker iOS áudio v7 e SSML natural no hop local', () => {
+  it('service worker teoria visível v8 e SSML natural no hop local', () => {
     const vite = readFileSync(join(root, 'vite.config.ts'), 'utf8')
-    expect(vite).toContain("cacheId: 'trilhapy-ios-audio-v7'")
-    expect(vite).toContain("cacheName: 'trilhapy-neural-mp3-v7'")
+    expect(vite).toContain("cacheId: 'trilhapy-theory-card-v8'")
+    expect(vite).toContain("cacheName: 'trilhapy-neural-mp3-v8'")
     const hop = readFileSync(join(root, 'scripts/tts-middleware.mjs'), 'utf8')
     expect(hop).toContain('rate="+0%"')
     expect(hop).toContain('pitch="+0Hz"')
