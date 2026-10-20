@@ -127,7 +127,7 @@ function ExercisePanel({
   const fillRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const token = window.setTimeout(() => speak(spokenPrompt(exercise)), 160)
+    const token = window.setTimeout(() => speak(spokenPrompt(exercise), 'prompt'), 160)
     return () => window.clearTimeout(token)
   }, [exercise])
 
@@ -171,11 +171,11 @@ function ExercisePanel({
     }
     setHint('')
     const submission = exercise.type === 'fill_blank' ? fillNow : currentSubmission()
-    if (exercise.type === 'fill_blank') speak(fillNow)
     const result = checkAnswer(exercise, submission)
     setChecked(true)
     setLastCorrect(result.correct)
     setMessage(result.message)
+    speak(result.message, result.correct ? 'feedback-correct' : 'feedback-wrong')
     if (result.correct) onCorrect()
     else onIncorrect()
   }
@@ -187,7 +187,7 @@ function ExercisePanel({
           <p className="text-xs font-bold text-muted">
             Pergunta {index + 1} de {total}
           </p>
-          <SpeakerButton onClick={() => speak(spokenPrompt(exercise))} />
+          <SpeakerButton onClick={() => speak(spokenPrompt(exercise), 'prompt')} />
         </div>
         <h1 className="whitespace-pre-wrap text-[1.35rem] font-extrabold leading-snug text-white">{exercise.prompt}</h1>
 
@@ -204,7 +204,7 @@ function ExercisePanel({
                     disabled={checked}
                     onClick={() => {
                       setSelected(choice)
-                      speak(choice)
+                      speak(choice, 'choice')
                     }}
                     className={cn(
                       'w-full rounded-2xl border-2 px-4 py-3.5 text-left text-[0.95rem] font-bold leading-snug text-white transition-colors touch-manipulation',
@@ -281,7 +281,7 @@ function ExercisePanel({
                       return copy
                     })
                     setOrderBuilt((built) => [...built, line])
-                    speak(line)
+                    speak(line, 'choice')
                   }}
                   className="rounded-2xl border-2 border-line bg-card px-4 py-3 text-left font-mono text-[13px] text-white touch-manipulation"
                 >

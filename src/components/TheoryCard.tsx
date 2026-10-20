@@ -16,7 +16,7 @@ export function TheoryCard({ unit, onContinue, onExit }: TheoryCardProps) {
   const continueLabel = unit.kind === 'challenge' ? 'Começar o desafio' : 'Começar os exercícios'
 
   useEffect(() => {
-    const token = window.setTimeout(() => speak(spokenTheory(unit)), 160)
+    const token = window.setTimeout(() => speak(spokenTheory(unit), 'theory'), 160)
     return () => {
       window.clearTimeout(token)
       stopTts()
@@ -40,7 +40,7 @@ export function TheoryCard({ unit, onContinue, onExit }: TheoryCardProps) {
             ariaLabel="Ouvir a explicação de novo"
             onClick={() => {
               unlockTts()
-              speak(spokenTheory(unit))
+              speak(spokenTheory(unit), 'theory')
             }}
           />
         </div>

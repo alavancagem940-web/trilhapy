@@ -20,10 +20,14 @@ function voice(partial: Partial<VoiceLike> & Pick<VoiceLike, 'name' | 'lang'>): 
 }
 
 describe('constantes de áudio', () => {
-  it('usa fala lenta, tom um pouco mais grave e volume cheio', () => {
-    expect(TTS_RATE).toBe(0.85)
-    expect(TTS_PITCH).toBe(0.9)
+  it('usa fala mais lenta, tom mais grave e volume cheio', () => {
+    expect(TTS_RATE).toBe(0.8)
+    expect(TTS_PITCH).toBe(0.82)
     expect(TTS_VOLUME).toBe(1)
+    expect(TTS_RATE).toBeGreaterThanOrEqual(0.78)
+    expect(TTS_RATE).toBeLessThanOrEqual(0.82)
+    expect(TTS_PITCH).toBeGreaterThanOrEqual(0.8)
+    expect(TTS_PITCH).toBeLessThanOrEqual(0.85)
   })
 })
 

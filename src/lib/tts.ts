@@ -1,8 +1,12 @@
+import { type SpeakKind, toFlirtySpeech } from './speech-persona'
+
 /** Web Speech playback — keep these in one place, never scatter literals at call sites. */
-export const TTS_RATE = 0.85
-export const TTS_PITCH = 0.9
+export const TTS_RATE = 0.8
+export const TTS_PITCH = 0.82
 export const TTS_VOLUME = 1
 export const TTS_LANG = 'pt-BR'
+
+export type { SpeakKind }
 
 export type VoiceLike = {
   name: string
@@ -240,11 +244,13 @@ export function stopTts(): void {
   window.speechSynthesis.cancel()
 }
 
-export function speak(text: string): void {
+export function speak(text: string, kind: SpeakKind = 'prompt'): void {
   if (!available || !text.trim()) return
   try {
     window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
+    const spoken = toFlirtySpeech(text, kind)
+    if (!spoken) return
+    const utterance = new SpeechSynthesisUtterance(spoken)
     applyUtteranceSettings(utterance, pickVoice())
     window.speechSynthesis.speak(utterance)
   } catch {

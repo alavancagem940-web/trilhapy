@@ -4,7 +4,7 @@ PWA mobile-first para aprender Python do zero, em português, no estilo Duolingo
 
 A trilha vai do **Básico ao Avançado**. Cada módulo começa pelo card **Explicação Teórica Prática** (conceito, sintaxe e exemplos reais em Python) e só então vai aos exercícios. Cada nível fecha com um **desafio**. É preciso acertar cerca de **75%** do desafio para liberar a etapa seguinte. Respostas certas ficam verdes e valem XP; erradas ficam vermelhas — nos dois casos o app explica o **motivo correto**. **Não há vidas nem corações**: se errar, você tenta de novo ou avança, sem limite.
 
-O leitor de voz usa a **Web Speech API** on-device (sem chave e sem API paga). Ele escolhe a melhor voz **neural/enhanced/premium/natural** em `pt-BR` — prioriza `FranciscaNeural` / `ThaliaNeural` se o aparelho as expuser — e cai para a melhor neural feminina pt-BR, depois para a voz do sistema. Fala lenta e clara (`rate` 0.85, `pitch` 0.9, `volume` 1). Lê a **Explicação Teórica Prática** e cada pergunta ao aparecer, lê a alternativa quando você toca, e o botão **Ouvir** repete. O áudio não trava a tela.
+O leitor de voz usa a **Web Speech API** on-device (sem chave e sem API paga). Ele escolhe a melhor voz **neural/enhanced/premium/natural** em `pt-BR` — prioriza `FranciscaNeural` / `ThaliaNeural` se o aparelho as expuser — e cai para a melhor neural feminina pt-BR, depois para a voz do sistema. Fala lenta e grave (`rate` 0.8, `pitch` 0.82, `volume` 1). O texto na tela continua didático; só a voz usa uma entrega falada íntima. Lê a **Explicação Teórica Prática** e cada pergunta ao aparecer, lê a alternativa quando você toca, lê o feedback, e o botão **Ouvir** repete. O áudio não trava a tela.
 
 ## Primeira trilha
 
