@@ -31,6 +31,7 @@ export function HomePath({ store, tts, onStart, onReset, onInstall, canInstall }
             : 'Continue de onde parou. Cada módulo só abre o próximo depois do desafio (~75%).'}
         </p>
         <p className="mt-2 text-xs text-muted">Leitor de voz: {tts.label}</p>
+        {tts.hint ? <p className="mt-2 text-xs leading-relaxed text-gold">{tts.hint}</p> : null}
       </section>
 
       {!standalone ? (

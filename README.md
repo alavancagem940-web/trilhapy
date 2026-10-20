@@ -4,7 +4,7 @@ PWA mobile-first para aprender Python do zero, em português, no estilo Duolingo
 
 A trilha vai do **Básico ao Avançado**. Cada nível tem lições curtas e um **desafio final**. É preciso acertar cerca de **75%** do desafio para liberar a etapa seguinte. Respostas certas ficam verdes e valem XP; erradas ficam vermelhas. **Não há vidas nem corações**: se errar, você tenta de novo ou avança, sem limite.
 
-O leitor de voz usa a **Web Speech API** (`pt-BR`): lê cada pergunta ao aparecer, lê a alternativa quando você toca, e o botão **Ouvir** repete. O áudio não trava a tela.
+O leitor de voz usa a **Web Speech API** on-device (sem chave e sem API paga). Ele escolhe a melhor voz **neural/enhanced/premium/natural** em `pt-BR` — prioriza `FranciscaNeural` / `ThaliaNeural` se o aparelho as expuser — e cai para a melhor neural feminina pt-BR, depois para a voz do sistema. Fala lenta e clara (`rate` 0.85, `pitch` 0.9, `volume` 1). Lê cada pergunta ao aparecer, lê a alternativa quando você toca, e o botão **Ouvir** repete. O áudio não trava a tela.
 
 ## Primeira trilha
 
@@ -37,7 +37,7 @@ npm run build     # gera dist/ para GitHub Pages
 npm run preview   # serve o build na mesma porta 43817
 ```
 
-No iPhone, o Safari às vezes só libera a voz depois do primeiro toque na tela. Toque em **Ouvir** ou numa alternativa se o autoplay ficar mudo.
+No iPhone, o Safari às vezes só libera a voz depois do primeiro toque na tela. Toque em **Ouvir** ou numa alternativa se o autoplay ficar mudo. Se só existir voz compacta, o app mostra um atalho para **Ajustes → Acessibilidade → Conteúdo falado** e continua funcionando. Depois de uma atualização, feche o PWA na tela inicial e abra de novo para o iPhone pegar o service worker novo.
 
 ## Publicar no GitHub Pages (incluindo o base path)
 
@@ -100,7 +100,7 @@ O ícone usa `apple-touch-icon`, `theme-color` `#131F24` e `display: standalone`
 
 - `src/lib/lessons.ts` — currículo e correção
 - `src/lib/progress.ts` — XP e desbloqueio no `localStorage`
-- `src/lib/tts.ts` — Web Speech API em `pt-BR`, sem bloquear a UI
+- `src/lib/tts.ts` — Web Speech API neural em `pt-BR` (`TTS_RATE` / `TTS_PITCH` / `TTS_VOLUME`), sem bloquear a UI
 - `src/components/` — trilha, lição, estados vazio / carregando / erro
 - `public/` — ícones PWA e `apple-touch-icon.png`
 

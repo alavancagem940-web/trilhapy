@@ -46,6 +46,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cacheId: 'trilhapy-neural-tts-v3',
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}'],
         navigateFallback: 'index.html',
       },
