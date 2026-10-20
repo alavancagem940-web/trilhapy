@@ -1,6 +1,12 @@
 import { Check, Lock, Star, Trophy } from 'lucide-react'
 import { LEVELS, type Level, type Unit } from '../lib/lessons'
-import { isStandaloneDisplay, type TtsStatus } from '../lib/tts'
+import {
+  DEFAULT_VOICE_ID,
+  NEURAL_VOICES,
+  isStandaloneDisplay,
+  setSelectedVoice,
+  type TtsStatus,
+} from '../lib/tts'
 import type { ProgressStore } from '../lib/progress'
 import { Button } from './ui/button'
 import { cn } from '../lib/cn'
@@ -31,6 +37,23 @@ export function HomePath({ store, tts, onStart, onReset, onInstall, canInstall }
             : 'Continue de onde parou. Cada módulo começa pela Explicação Teórica Prática. O desafio (~75%) libera o próximo nível.'}
         </p>
         <p className="mt-2 text-xs text-muted">Leitor de voz: {tts.label}</p>
+        <label className="mt-3 flex flex-col gap-1 text-xs text-muted">
+          <span className="font-bold text-white">Voz neural</span>
+          <select
+            className="h-11 rounded-2xl border-2 border-line bg-card px-3 text-base font-bold text-white"
+            value={tts.voiceId}
+            onChange={(event) => setSelectedVoice(event.target.value)}
+            aria-label="Escolher voz neural"
+          >
+            {NEURAL_VOICES.map((voice) => (
+              <option key={voice.id} value={voice.id}>
+                {voice.label}
+                {voice.id === DEFAULT_VOICE_ID ? ' (padrão)' : ''}
+              </option>
+            ))}
+          </select>
+          <span>{NEURAL_VOICES.find((voice) => voice.id === tts.voiceId)?.blurb}</span>
+        </label>
         {tts.hint ? <p className="mt-2 text-xs leading-relaxed text-gold">{tts.hint}</p> : null}
       </section>
 

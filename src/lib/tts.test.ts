@@ -1,112 +1,66 @@
-import { describe, expect, it } from 'vitest'
-import {
-  TTS_PITCH,
-  TTS_RATE,
-  TTS_VOLUME,
-  formatVoiceLabel,
-  isFranciscaOrThalia,
-  isNeuralLike,
-  pickBestVoice,
-  scoreVoice,
-  type VoiceLike,
-} from './tts'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { HAPPY_PATH_ENGINE } from './microsoft-neural'
 
-function voice(partial: Partial<VoiceLike> & Pick<VoiceLike, 'name' | 'lang'>): VoiceLike {
-  return {
-    localService: true,
-    voiceURI: partial.voiceURI ?? partial.name,
-    ...partial,
-  }
-}
-
-describe('constantes de áudio', () => {
-  it('usa fala mais lenta, tom mais grave e volume cheio', () => {
-    expect(TTS_RATE).toBe(0.8)
-    expect(TTS_PITCH).toBe(0.82)
-    expect(TTS_VOLUME).toBe(1)
-    expect(TTS_RATE).toBeGreaterThanOrEqual(0.78)
-    expect(TTS_RATE).toBeLessThanOrEqual(0.82)
-    expect(TTS_PITCH).toBeGreaterThanOrEqual(0.8)
-    expect(TTS_PITCH).toBeLessThanOrEqual(0.85)
+describe('caminho feliz iPhone', () => {
+  it('não usa speechSynthesis no caminho feliz', async () => {
+    const { happyPathUsesSpeechSynthesis } = await import('./tts')
+    expect(HAPPY_PATH_ENGINE).toBe('microsoft-neural-audio')
+    expect(happyPathUsesSpeechSynthesis()).toBe(false)
   })
 })
 
-describe('scoreVoice / pickBestVoice', () => {
-  const franciscaNeural = voice({
-    name: 'Microsoft Francisca Online (Natural) - Portuguese (Brazil)',
-    lang: 'pt-BR',
-    voiceURI: 'pt-BR-FranciscaNeural',
-    localService: false,
-  })
-  const thaliaNeural = voice({
-    name: 'Microsoft Thalia Online (Natural) - Portuguese (Brazil)',
-    lang: 'pt-BR',
-    voiceURI: 'Microsoft ThaliaNeural pt-BR',
-    localService: false,
-  })
-  const franciscaPtBr = voice({ name: 'Francisca', lang: 'pt-BR' })
-  const lucianaEnhanced = voice({ name: 'Luciana (Enhanced)', lang: 'pt-BR' })
-  const lucianaCompact = voice({ name: 'Luciana (Compact)', lang: 'pt-BR' })
-  const googlePt = voice({ name: 'Google português do Brasil', lang: 'pt-BR' })
-  const joanaPt = voice({ name: 'Joana (Enhanced)', lang: 'pt-PT' })
-  const daniel = voice({ name: 'Daniel (Enhanced)', lang: 'pt-BR' })
-  const samanthaNeural = voice({ name: 'Samantha (Premium)', lang: 'en-US' })
-  const espeak = voice({ name: 'eSpeak compact', lang: 'en-GB' })
-
-  it('reconhece FranciscaNeural / ThaliaNeural pelo nome ou URI', () => {
-    expect(isFranciscaOrThalia(franciscaNeural)).toBe(true)
-    expect(isFranciscaOrThalia(thaliaNeural)).toBe(true)
-    expect(isFranciscaOrThalia(franciscaPtBr)).toBe(true)
-    expect(isFranciscaOrThalia(lucianaEnhanced)).toBe(false)
+describe('speak() toca MPEG com Audio()', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    vi.resetModules()
   })
 
-  it('prioriza FranciscaNeural acima de qualquer outra neural pt-BR', () => {
-    const picked = pickBestVoice([lucianaEnhanced, googlePt, franciscaNeural, daniel])
-    expect(picked?.name).toBe(franciscaNeural.name)
-    expect(scoreVoice(franciscaNeural)).toBeGreaterThan(scoreVoice(lucianaEnhanced))
-  })
+  it('busca o MPEG neural e chama play() no Audio, sem speechSynthesis', async () => {
+    vi.resetModules()
+    const mpeg = Uint8Array.from([0xff, 0xf3, 0x48, 0xc4, 0x00, 0x00, 0x00, 0x03])
+    const play = vi.fn().mockResolvedValue(undefined)
+    const audioInstance = {
+      play,
+      pause: vi.fn(),
+      load: vi.fn(),
+      preload: 'auto',
+      volume: 1,
+      src: '',
+      currentTime: 0,
+      setAttribute: vi.fn(),
+      removeAttribute: vi.fn(),
+    }
+    const speechSpeak = vi.fn()
+    const fetchMock = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      arrayBuffer: async () => mpeg.buffer.slice(mpeg.byteOffset, mpeg.byteOffset + mpeg.byteLength),
+    }))
 
-  it('prioriza ThaliaNeural quando Francisca não existe', () => {
-    const picked = pickBestVoice([lucianaEnhanced, thaliaNeural, googlePt])
-    expect(picked?.name).toBe(thaliaNeural.name)
-  })
+    vi.stubGlobal(
+      'Audio',
+      class {
+        constructor() {
+          return audioInstance
+        }
+      },
+    )
+    vi.stubGlobal('speechSynthesis', { speak: speechSpeak, cancel: vi.fn() })
+    vi.stubGlobal('fetch', fetchMock)
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => 'blob:neural'),
+      revokeObjectURL: vi.fn(),
+    })
 
-  it('prioriza Francisca pt-BR mesmo sem o sufixo Neural', () => {
-    const picked = pickBestVoice([lucianaEnhanced, franciscaPtBr])
-    expect(picked?.name).toBe('Francisca')
-  })
-
-  it('cai na melhor neural feminina pt-BR se a Microsoft não existir', () => {
-    const picked = pickBestVoice([daniel, lucianaCompact, lucianaEnhanced, samanthaNeural])
-    expect(picked?.name).toBe('Luciana (Enhanced)')
-    expect(isNeuralLike(picked!)).toBe(true)
-  })
-
-  it('não trava e não exige Francisca/Thalia no iPhone', () => {
-    const picked = pickBestVoice([lucianaCompact, lucianaEnhanced])
-    expect(picked).not.toBeNull()
-    expect(isFranciscaOrThalia(picked!)).toBe(false)
-  })
-
-  it('evita compact/eloquence/legacy quando há neural', () => {
-    const picked = pickBestVoice([lucianaCompact, samanthaNeural])
-    expect(picked?.name).toBe('Samantha (Premium)')
-    expect(scoreVoice(lucianaEnhanced)).toBeGreaterThan(scoreVoice(lucianaCompact))
-  })
-
-  it('prefere neural pt-PT a neural em outro idioma', () => {
-    const picked = pickBestVoice([samanthaNeural, joanaPt])
-    expect(picked?.name).toBe('Joana (Enhanced)')
-  })
-
-  it('usa compacta pt-BR só se não houver neural', () => {
-    const picked = pickBestVoice([lucianaCompact, espeak])
-    expect(picked?.name).toBe('Luciana (Compact)')
-  })
-
-  it('rotula voz neural no texto visível', () => {
-    expect(formatVoiceLabel(franciscaNeural, true)).toBe(`voz neural (${franciscaNeural.name})`)
-    expect(formatVoiceLabel(lucianaEnhanced, true)).toBe('voz neural (Luciana (Enhanced))')
-    expect(formatVoiceLabel(lucianaCompact, true)).toBe('voz compacta (Luciana (Compact))')
+    const { initTts, speak, getTtsStatus, stopTts } = await import('./tts')
+    initTts()
+    speak('O que é uma variável em Python?', 'prompt')
+    await vi.waitFor(() => {
+      expect(play).toHaveBeenCalled()
+    })
+    expect(audioInstance.src).toBe('blob:neural')
+    expect(getTtsStatus().engine).toBe('microsoft-neural-audio')
+    expect(speechSpeak).not.toHaveBeenCalled()
+    stopTts()
   })
 })

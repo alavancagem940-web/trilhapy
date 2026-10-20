@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+// @ts-expect-error plain JS hop for local Microsoft neural TTS
+import { attachTtsMiddleware } from './scripts/tts-middleware.mjs'
 
 const base = process.env.VITE_BASE || '/'
 
@@ -11,6 +13,15 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    {
+      name: 'trilhapy-live-tts',
+      configureServer(server) {
+        attachTtsMiddleware(server)
+      },
+      configurePreviewServer(server) {
+        attachTtsMiddleware(server)
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons/*.png'],
@@ -46,10 +57,20 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: 'trilhapy-flirt-tts-v4',
+        cacheId: 'trilhapy-ms-neural-v5',
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}'],
         navigateFallback: 'index.html',
+        runtimeCaching: [
+          {
+            urlPattern: /\/tts\/.*\.mp3$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'trilhapy-neural-mp3-v5',
+              expiration: { maxEntries: 2500, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+        ],
       },
     }),
   ],

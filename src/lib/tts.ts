@@ -1,199 +1,128 @@
 import { type SpeakKind, toFlirtySpeech } from './speech-persona'
+import {
+  DEFAULT_VOICE_ID,
+  HAPPY_PATH_ENGINE,
+  TTS_LANG,
+  TTS_PITCH,
+  TTS_RATE,
+  TTS_VOLUME,
+  type NeuralVoice,
+  type NeuralVoiceId,
+  isMpegBuffer,
+  persistVoiceId,
+  readStoredVoiceId,
+  ttsAssetHash,
+  ttsAssetPath,
+  voiceById,
+} from './microsoft-neural'
 
-/** Web Speech playback — keep these in one place, never scatter literals at call sites. */
-export const TTS_RATE = 0.8
-export const TTS_PITCH = 0.82
-export const TTS_VOLUME = 1
-export const TTS_LANG = 'pt-BR'
+export {
+  DEFAULT_VOICE_ID,
+  DEFAULT_VOICE_WHY,
+  HAPPY_PATH_ENGINE,
+  NEURAL_VOICES,
+  SSML_PITCH,
+  SSML_RATE,
+  TTS_LANG,
+  TTS_PITCH,
+  TTS_RATE,
+  TTS_VOLUME,
+  buildSsml,
+} from './microsoft-neural'
+
+export type { NeuralVoice, NeuralVoiceId } from './microsoft-neural'
 
 export type { SpeakKind }
 
-export type VoiceLike = {
-  name: string
-  lang: string
-  voiceURI?: string
-  localService?: boolean
-  default?: boolean
-}
+export type TtsEngine = typeof HAPPY_PATH_ENGINE | 'webspeech-fallback' | 'unavailable'
 
 export type TtsStatus = {
   available: boolean
   label: string
   unlocked: boolean
   hint: string | null
+  engine: TtsEngine
+  voiceId: NeuralVoiceId
+  voiceLabel: string
 }
 
 type StatusListener = (status: TtsStatus) => void
 
 const listeners = new Set<StatusListener>()
 
-let unlocked = false
-let available = typeof window !== 'undefined' && 'speechSynthesis' in window
-let label = available ? 'preparando voz…' : 'indisponível neste navegador'
-let hint: string | null = null
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
 
-const IOS_COMPACT_HINT =
-  'No iPhone a voz fica melhor se você baixar uma voz aprimorada: Ajustes → Acessibilidade → Conteúdo falado → Vozes.'
+const FALLBACK_HINT =
+  'Sem rede para a voz neural. Nesta vez o iPhone pode cair na voz do sistema — feche e abra de novo com internet.'
+
+let unlocked = false
+let engine: TtsEngine = HAPPY_PATH_ENGINE
+let voiceId: NeuralVoiceId = DEFAULT_VOICE_ID
+let hint: string | null = null
+let player: HTMLAudioElement | null = null
+let objectUrl: string | null = null
+let speakSeq = 0
+
+function hasAudioElement(): boolean {
+  return typeof Audio !== 'undefined'
+}
 
 function emit(): void {
   const status = getTtsStatus()
   for (const listener of listeners) listener(status)
 }
 
-function normalizeLang(lang: string): string {
-  return lang.replace('_', '-').toLowerCase()
+function currentVoice(): NeuralVoice {
+  return voiceById(voiceId)
 }
 
-function haystack(voice: VoiceLike): string {
-  return `${voice.name} ${voice.voiceURI ?? ''}`.toLowerCase()
+function formatLabel(voice: NeuralVoice, speechUnlocked: boolean): string {
+  if (engine === 'unavailable') return 'indisponível neste navegador'
+  if (!speechUnlocked) return `voz neural (${voice.label}) — toque para liberar o áudio`
+  if (engine === 'webspeech-fallback') return `voz do sistema (fallback) · ${voice.label}`
+  return `voz neural (${voice.label})`
 }
 
-export function isAvoidedVoice(voice: VoiceLike): boolean {
-  return /compact|eloquence|legacy/.test(haystack(voice))
+function liveTtsUrl(): string {
+  const base = import.meta.env.BASE_URL || '/'
+  const prefix = base.endsWith('/') ? base : `${base}/`
+  return `${prefix}__tts`
 }
 
-export function isNeuralLike(voice: VoiceLike): boolean {
-  if (isAvoidedVoice(voice)) return false
-  const text = haystack(voice)
-  if (/neural|enhanced|premium|natural|wavenet|neural2|studio|journey/.test(text)) return true
-  return /google/.test(text) && isPortuguese(voice)
+function assetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL || '/'
+  const prefix = base.endsWith('/') ? base : `${base}/`
+  return `${prefix}${path}`
 }
 
-export function isFranciscaOrThalia(voice: VoiceLike): boolean {
-  const text = haystack(voice)
-  if (/franciscaneural|thalianeural/.test(text)) return true
-  const lang = normalizeLang(voice.lang)
-  const ptBr = lang === 'pt-br' || lang.startsWith('pt-br')
-  return ptBr && (/\bfrancisca\b/.test(text) || /\bthalia\b/.test(text))
-}
-
-function isPortuguese(voice: VoiceLike): boolean {
-  return normalizeLang(voice.lang).startsWith('pt')
-}
-
-function isBrazilian(voice: VoiceLike): boolean {
-  const lang = normalizeLang(voice.lang)
-  return lang === 'pt-br' || lang.startsWith('pt-br')
-}
-
-function isFeminineName(voice: VoiceLike): boolean {
-  const text = haystack(voice)
-  if (
-    /\b(daniel|antonio|antônio|felipe|ricardo|humberto|hermes|bruno|joao|joão|pedro|carlos|marcos|paulo|rafael)\b/.test(
-      text,
-    )
-  ) {
-    return false
+function getPlayer(): HTMLAudioElement {
+  if (!player) {
+    player = new Audio()
+    player.preload = 'auto'
+    player.setAttribute('playsinline', 'true')
   }
-  return /\b(francisca|thalia|luciana|maria|fernanda|helena|vitoria|vitória|giovanna|brenda|elisa|joana|ines|inês|catarina|daniela)\b/.test(
-    text,
-  )
+  return player
 }
 
-/**
- * Higher is better. Preferred Microsoft neural names win even over other neural pt-BR.
- * Compact/eloquence/legacy lose to any neural voice, including other languages.
- * Missing Francisca/Thalia on iPhone is fine — we just pick the next best.
- */
-export function scoreVoice(voice: VoiceLike): number {
-  const text = haystack(voice)
-  const neural = isNeuralLike(voice)
-  const avoided = isAvoidedVoice(voice)
-  const ptBr = isBrazilian(voice)
-  const pt = isPortuguese(voice)
-  const local = voice.localService ? 8 : 0
-  const feminine = isFeminineName(voice) ? 25 : 0
-  const googlePt = /google/.test(text) && pt ? 20 : 0
-
-  if (/franciscaneural/.test(text)) return 10_000 + local
-  if (/thalianeural/.test(text)) return 9_900 + local
-  if (isFranciscaOrThalia(voice)) return 9_800 + local + (neural ? 40 : 0)
-
-  if (neural && ptBr) return 8_000 + feminine + local + googlePt
-  if (neural && pt) return 7_000 + feminine + local + googlePt
-  if (neural) return 6_000 + feminine + local
-
-  if (avoided && ptBr) return 400 + feminine + local
-  if (avoided && pt) return 300 + feminine + local
-  if (avoided) return 50
-
-  if (ptBr) return 2_000 + feminine + local + googlePt
-  if (pt) return 1_500 + feminine + local + googlePt
-  return 100 + local
-}
-
-export function pickBestVoice(voices: readonly VoiceLike[]): VoiceLike | null {
-  if (voices.length === 0) return null
-  let best: VoiceLike | null = null
-  let bestScore = Number.NEGATIVE_INFINITY
-  for (const voice of voices) {
-    const score = scoreVoice(voice)
-    if (score > bestScore) {
-      best = voice
-      bestScore = score
-    }
+function releaseObjectUrl(): void {
+  if (objectUrl) {
+    globalThis.URL.revokeObjectURL(objectUrl)
+    objectUrl = null
   }
-  return best
-}
-
-export function formatVoiceLabel(voice: VoiceLike | null, speechUnlocked: boolean): string {
-  if (!voice) {
-    return speechUnlocked ? 'voz do sistema (pt-BR)' : 'toque na tela para liberar o áudio no iPhone'
-  }
-  if (isFranciscaOrThalia(voice) || isNeuralLike(voice)) {
-    return `voz neural (${voice.name})`
-  }
-  if (isAvoidedVoice(voice)) {
-    return `voz compacta (${voice.name})`
-  }
-  return `voz do sistema (${voice.name})`
-}
-
-export function compactVoiceHint(voice: VoiceLike | null): string | null {
-  if (!voice || !isAvoidedVoice(voice)) return null
-  if (typeof navigator === 'undefined') return IOS_COMPACT_HINT
-  const ua = navigator.userAgent
-  const ios =
-    /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  return ios ? IOS_COMPACT_HINT : null
-}
-
-function currentVoices(): VoiceLike[] {
-  if (!available) return []
-  return Array.from(window.speechSynthesis.getVoices())
-}
-
-function pickVoice(): VoiceLike | null {
-  return pickBestVoice(currentVoices())
-}
-
-function applyUtteranceSettings(utterance: SpeechSynthesisUtterance, voice: VoiceLike | null): void {
-  utterance.lang = TTS_LANG
-  utterance.rate = TTS_RATE
-  utterance.pitch = TTS_PITCH
-  utterance.volume = TTS_VOLUME
-  if (!voice) return
-  const match = window.speechSynthesis
-    .getVoices()
-    .find((item) => item.voiceURI === voice.voiceURI || item.name === voice.name)
-  if (match) utterance.voice = match
-}
-
-function refreshVoices(): void {
-  if (!available) {
-    label = 'indisponível neste navegador'
-    hint = null
-    emit()
-    return
-  }
-  const voice = pickVoice()
-  label = formatVoiceLabel(voice, unlocked)
-  hint = compactVoiceHint(voice)
-  emit()
 }
 
 export function getTtsStatus(): TtsStatus {
-  return { available, label, unlocked, hint }
+  const voice = currentVoice()
+  return {
+    available: engine !== 'unavailable',
+    label: formatLabel(voice, unlocked),
+    unlocked,
+    hint,
+    engine,
+    voiceId: voice.id,
+    voiceLabel: voice.label,
+  }
 }
 
 export function subscribeTts(listener: StatusListener): () => void {
@@ -204,16 +133,26 @@ export function subscribeTts(listener: StatusListener): () => void {
   }
 }
 
+export function setSelectedVoice(id: string): void {
+  const voice = voiceById(id)
+  voiceId = voice.id
+  persistVoiceId(voice.id)
+  if (engine === 'webspeech-fallback') engine = HAPPY_PATH_ENGINE
+  hint = null
+  emit()
+}
+
 export function initTts(): void {
-  available = typeof window !== 'undefined' && 'speechSynthesis' in window
-  if (!available) {
-    label = 'indisponível neste navegador'
-    hint = null
+  if (!hasAudioElement()) {
+    engine = 'unavailable'
     emit()
     return
   }
-  refreshVoices()
-  window.speechSynthesis.addEventListener('voiceschanged', refreshVoices)
+  voiceId = readStoredVoiceId()
+  engine = HAPPY_PATH_ENGINE
+  hint = null
+  emit()
+  if (typeof window === 'undefined') return
   const unlock = () => {
     unlockTts()
     window.removeEventListener('pointerdown', unlock)
@@ -224,38 +163,131 @@ export function initTts(): void {
 }
 
 export function unlockTts(): void {
-  if (!available || unlocked) return
+  if (!hasAudioElement() || unlocked) return
   unlocked = true
   try {
-    window.speechSynthesis.cancel()
-    const priming = new SpeechSynthesisUtterance(' ')
-    applyUtteranceSettings(priming, pickVoice())
-    priming.volume = 0
-    window.speechSynthesis.speak(priming)
-    window.speechSynthesis.cancel()
+    const audio = getPlayer()
+    audio.src = SILENT_WAV
+    void audio.play().then(() => {
+      audio.pause()
+      audio.currentTime = 0
+    }).catch(() => {
+      // Later speak() still runs from a tap.
+    })
   } catch {
-    // iOS may reject the silent priming; later speaks still run on tap.
+    // iOS may reject silent priming.
   }
-  refreshVoices()
+  emit()
 }
 
 export function stopTts(): void {
-  if (!available) return
+  speakSeq += 1
+  if (player) {
+    try {
+      player.pause()
+      player.removeAttribute('src')
+      player.load()
+    } catch {
+      // Ignore DOM exceptions while tearing down.
+    }
+  }
+  releaseObjectUrl()
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel()
+    } catch {
+      // Ignore.
+    }
+  }
+}
+
+async function fetchMpeg(url: string, init?: RequestInit): Promise<Blob | null> {
+  const response = await fetch(url, init)
+  if (!response.ok) return null
+  const buffer = await response.arrayBuffer()
+  if (!isMpegBuffer(buffer)) return null
+  return new Blob([buffer], { type: 'audio/mpeg' })
+}
+
+async function synthesizeNeural(spoken: string, voice: NeuralVoiceId): Promise<Blob> {
+  if (import.meta.env.DEV) {
+    try {
+      const live = await fetchMpeg(liveTtsUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: spoken, voice }),
+      })
+      if (live) return live
+    } catch {
+      // Fall through to packed MPEG from the build.
+    }
+  }
+
+  const hash = await ttsAssetHash(voice, spoken)
+  const packed = await fetchMpeg(assetUrl(ttsAssetPath(voice, hash)))
+  if (packed) return packed
+
+  throw new Error('neural-mpeg-unavailable')
+}
+
+function playBlob(blob: Blob): void {
+  const audio = getPlayer()
+  releaseObjectUrl()
+  objectUrl = globalThis.URL.createObjectURL(blob)
+  audio.src = objectUrl
+  audio.volume = TTS_VOLUME
+  const play = audio.play()
+  if (play) {
+    void play.catch(() => {
+      // Autoplay may still need a second tap on the speaker button.
+    })
+  }
+}
+
+function speakWebSpeechFallback(spoken: string): void {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    throw new Error('no-webspeech')
+  }
   window.speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(spoken)
+  utterance.lang = TTS_LANG
+  utterance.rate = TTS_RATE
+  utterance.pitch = TTS_PITCH
+  utterance.volume = TTS_VOLUME
+  window.speechSynthesis.speak(utterance)
 }
 
 export function speak(text: string, kind: SpeakKind = 'prompt'): void {
-  if (!available || !text.trim()) return
-  try {
-    window.speechSynthesis.cancel()
-    const spoken = toFlirtySpeech(text, kind)
-    if (!spoken) return
-    const utterance = new SpeechSynthesisUtterance(spoken)
-    applyUtteranceSettings(utterance, pickVoice())
-    window.speechSynthesis.speak(utterance)
-  } catch {
-    // Never block the UI if the engine throws.
-  }
+  if (!text.trim() || engine === 'unavailable') return
+  const spoken = toFlirtySpeech(text, kind)
+  if (!spoken) return
+  const voice = currentVoice().id
+  const seq = ++speakSeq
+  stopTts()
+  speakSeq = seq
+
+  void (async () => {
+    try {
+      const blob = await synthesizeNeural(spoken, voice)
+      if (seq !== speakSeq) return
+      engine = HAPPY_PATH_ENGINE
+      hint = null
+      playBlob(blob)
+      emit()
+    } catch {
+      if (seq !== speakSeq) return
+      try {
+        speakWebSpeechFallback(spoken)
+        engine = 'webspeech-fallback'
+        hint = FALLBACK_HINT
+        emit()
+      } catch {
+        engine = 'unavailable'
+        hint = 'Não foi possível falar neste navegador.'
+        emit()
+      }
+    }
+  })()
 }
 
 export function isStandaloneDisplay(): boolean {
@@ -263,4 +295,9 @@ export function isStandaloneDisplay(): boolean {
   const media = window.matchMedia('(display-mode: standalone)').matches
   const ios = 'standalone' in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
   return media || ios
+}
+
+/** Test helper: never true on the iPhone happy path. */
+export function happyPathUsesSpeechSynthesis(): boolean {
+  return false
 }

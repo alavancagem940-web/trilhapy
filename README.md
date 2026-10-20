@@ -4,7 +4,17 @@ PWA mobile-first para aprender Python do zero, em português, no estilo Duolingo
 
 A trilha vai do **Básico ao Avançado**. Cada módulo começa pelo card **Explicação Teórica Prática** (conceito, sintaxe e exemplos reais em Python) e só então vai aos exercícios. Cada nível fecha com um **desafio**. É preciso acertar cerca de **75%** do desafio para liberar a etapa seguinte. Respostas certas ficam verdes e valem XP; erradas ficam vermelhas — nos dois casos o app explica o **motivo correto**. **Não há vidas nem corações**: se errar, você tenta de novo ou avança, sem limite.
 
-O leitor de voz usa a **Web Speech API** on-device (sem chave e sem API paga). Ele escolhe a melhor voz **neural/enhanced/premium/natural** em `pt-BR` — prioriza `FranciscaNeural` / `ThaliaNeural` se o aparelho as expuser — e cai para a melhor neural feminina pt-BR, depois para a voz do sistema. Fala lenta e grave (`rate` 0.8, `pitch` 0.82, `volume` 1). O texto na tela continua didático; só a voz usa uma entrega falada íntima. Lê a **Explicação Teórica Prática** e cada pergunta ao aparecer, lê a alternativa quando você toca, lê o feedback, e o botão **Ouvir** repete. O áudio não trava a tela.
+## Leitor de voz (Microsoft neural)
+
+O motor de voz no cliente monta SSML da Microsoft (rate `-20%`, pitch `-8Hz`) e **toca MPEG neural com `Audio()`**. No iPhone o caminho feliz **não usa** `speechSynthesis` nem a voz compacta do sistema.
+
+- **Padrão: Francisca** (`pt-BR-FranciscaNeural`). Adulta, clara, pt-BR, não infantil — o perfil mais próximo de uma dubladora grave e composta (referência: Luísa Viotti) **sem clonar** a voz dela e sem modelo com o nome dela. O tom fica um pouco mais grave no SSML.
+- **Lista para trocar:** Francisca, Giovanna, Yara, Thalia, Manuela. Thalia usa `pt-BR-ThalitaNeural` (o id `ThaliaNeural` não sintetiza na Microsoft).
+- Persona falada (só áudio): entrega lenta, íntima e flertante. O texto na tela continua didático.
+- Lê a **Explicação Teórica Prática** e cada pergunta ao aparecer, lê a alternativa quando você toca, lê o feedback, e o botão **Ouvir** repete.
+- Fallback `speechSynthesis` **só se a rede falhar** e o MPEG neural não estiver no aparelho.
+
+No desenvolvimento local, o Vite expõe `POST /__tts` (hop same-origin para a síntese Microsoft). No GitHub Pages o app toca os MPEG neurais gerados no build com o mesmo SSML.
 
 ## Primeira trilha
 
@@ -27,17 +37,18 @@ npm install
 npm run dev
 ```
 
-O servidor sobe em [http://127.0.0.1:43817](http://127.0.0.1:43817). No celular da mesma rede, use o IP da máquina na mesma porta.
+O servidor sobe em [http://127.0.0.1:43817](http://127.0.0.1:43817). No celular da mesma rede, use o IP da máquina na mesma porta. O `__tts` local sintetiza na hora (Microsoft neural) e o `Audio()` toca o MPEG — no iPhone da LAN isso não cai em Web Speech.
 
 Outros comandos:
 
 ```bash
-npm test          # currículo, XP e desbloqueio
-npm run build     # gera dist/ para GitHub Pages
-npm run preview   # serve o build na mesma porta 43817
+npm test            # currículo, XP, SSML, síntese real Microsoft
+npm run test:playback  # síntese + play() no Chrome com Audio()
+npm run build       # gera MPEG neurais + dist/ para GitHub Pages
+npm run preview     # serve o build na mesma porta 43817
 ```
 
-No iPhone, o Safari às vezes só libera a voz depois do primeiro toque na tela. Toque em **Ouvir** ou numa alternativa se o autoplay ficar mudo. Se só existir voz compacta, o app mostra um atalho para **Ajustes → Acessibilidade → Conteúdo falado** e continua funcionando. Depois de uma atualização, feche o PWA na tela inicial e abra de novo para o iPhone pegar o service worker novo.
+No iPhone, o Safari só libera `Audio()` depois do primeiro toque. Toque em **Ouvir** ou numa alternativa se o autoplay ficar mudo. Depois de uma atualização, feche o PWA na tela inicial e abra de novo para pegar o service worker novo (`trilhapy-ms-neural-v5`).
 
 ## Publicar no GitHub Pages (incluindo o base path)
 
@@ -63,7 +74,7 @@ A pasta `dist/` é o site estático. Tem um arquivo `.nojekyll` para o GitHub Pa
 3. O workflow em `.github/workflows/github-pages.yml` define `VITE_BASE` sozinho:
    - `/NOME_DO_REPO/` em site de projeto
    - `/` se o repositório for `USUARIO.github.io`
-4. Cada push em `main` publica o app.
+4. Cada push em `main` publica o app. O build gera os MPEG neurais (Microsoft) e empacota no site.
 
 ### Opção B — pasta `docs/` ou branch `gh-pages`
 
@@ -102,7 +113,10 @@ O ícone usa `apple-touch-icon`, `theme-color` `#131F24` e `display: standalone`
 - `src/lib/curriculum/` — teoria e exercícios (N1–Avançado)
 - `src/components/TheoryCard.tsx` — card **Explicação Teórica Prática**
 - `src/lib/progress.ts` — XP e desbloqueio no `localStorage`
-- `src/lib/tts.ts` — Web Speech API neural em `pt-BR` (`TTS_RATE` / `TTS_PITCH` / `TTS_VOLUME`), sem bloquear a UI
+- `src/lib/microsoft-neural.ts` — vozes, SSML, hash do MPEG
+- `src/lib/tts.ts` — motor no cliente: `Audio()` + MPEG neural Microsoft, sem Web Speech no caminho feliz
+- `src/lib/speech-persona.ts` — só o texto falado (persona)
+- `scripts/bing-tts.ts` — síntese Microsoft no build e nos testes
 - `src/components/` — trilha, lição, estados vazio / carregando / erro
 - `public/` — ícones PWA e `apple-touch-icon.png`
 

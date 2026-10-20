@@ -175,7 +175,10 @@ function ExercisePanel({
     setChecked(true)
     setLastCorrect(result.correct)
     setMessage(result.message)
-    speak(result.message, result.correct ? 'feedback-correct' : 'feedback-wrong')
+    speak(
+      result.correct ? exercise.explainCorrect : exercise.explainWrong,
+      result.correct ? 'feedback-correct' : 'feedback-wrong',
+    )
     if (result.correct) onCorrect()
     else onIncorrect()
   }

@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 43817",
-    "build": "tsc -b && vite build",
+    "prebuild:tts": "tsx scripts/prebuild-tts.ts",
+    "build": "npm run prebuild:tts && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview --host 127.0.0.1 --port 43817",
     "test": "vitest run",
+    "test:playback": "tsx scripts/tts-playback-probe.ts",
     "icons": "python3 scripts/generate-icons.py"
   },
   "dependencies": {
@@ -27,7 +29,9 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.88.0",
+    "playwright-core": "^1.64.1",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vite": "^8.3.4",
     "vite-plugin-pwa": "^2.0.0",
