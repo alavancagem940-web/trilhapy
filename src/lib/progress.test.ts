@@ -62,6 +62,18 @@ describe('progresso', () => {
     expect(payload).not.toHaveProperty('hearts_updated_at')
   })
 
+  it('libera a próxima lição ao concluir a anterior', () => {
+    const store = new ProgressStore(createMemoryStorage())
+    store.load()
+    const n1 = LEVELS[0]!
+    const first = n1.units[0]!
+    const second = n1.units[1]!
+    expect(store.isUnitUnlocked(n1.id, second.id)).toBe(false)
+    store.markUnitComplete(first.id, 20)
+    expect(store.isUnitComplete(first.id)).toBe(true)
+    expect(store.isUnitUnlocked(n1.id, second.id)).toBe(true)
+  })
+
   it('não soma bônus de lição duas vezes', () => {
     const store = new ProgressStore(createMemoryStorage())
     store.load()
