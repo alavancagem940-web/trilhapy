@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>FullScreen</key>
+      <true/>
+      <key>Icon</key>
+      <data>
+iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAACj0lEQVR42u3cMa6C
+UBRF0RenYGtiw6AcJsOgYDy0kNhZAc31vZxV7PL/4npWYiG053vapdSaIwgACQAJ
+AAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJ
+AAkACQAJAAkACQAJAAkACQAJAAkACQAJAAmA0dqX9pObABA1+LPcDIDI4YMAgOGD
+AIDxQwCA8UMAgPFDAIDxQwCA8UMAAAAAAGD8EAAAAAAAJI8fAgAAAAAAAHwWAAAg
+AAAQAFHjhwAAAAAAwFcgAQCAAABAAAAgAAAQAH4MJwAAEAAeiBEAAAgAD8ULAK9F
+EQBejAWAI1QhqPp7AdANgl7+jwCQAJAAkACQAPhrr3n75hYAxIz9am4GQOTwQQDA
+8EEAwPghAMD4IQDA+CEAwPghAMD4IQAAAAAAMH4IAAAAAACSxw8BAAAAAAAAPgsA
+ABAAAAiAqPFDAAAAAADgK5AAAEAAACAAABAAAAgAP4YTAAAIAA/ECAAABICH4gWA
+16IIAC/GAsARqhBU/b0A6AZBL/9HAEgASABIAEgACABHqOizPm7lZgBEDh8EAAwf
+BACMHwIAjB8CAIwfAgCMHwIAjB8CAAAAAADjhwAAAAAAIHn8EAAAAAAAAOCzAAAA
+AQCAAIgaPwQAAAAAAL4CCQAABAAAAgAAAQCAAPBjOAEAgADwQIwAAEAAeCheAHgt
+igDwYiwAHGEUBG4LQCwCNwUgEoIbAhAJwc0AiALhJgBIAEgASABIAEgASABIAEgA
+SABIAEgASABIAEgASABIAEgASABIAEgASABIAEgACABHEAASABIAEgASABIAEgAS
+ABIAEgASABIAEgASABIAEgDSQB1+KAdO0pnvTAAAAABJRU5ErkJggg==
+      </data>
+      <key>IsRemovable</key>
+      <true/>
+      <key>Label</key>
+      <string>TrilhaPy</string>
+      <key>PayloadDescription</key>
+      <string>Atalho do TrilhaPy na Tela de Início</string>
+      <key>PayloadDisplayName</key>
+      <string>TrilhaPy</string>
+      <key>PayloadIdentifier</key>
+      <string>web.alavancagem940.trilhapy.webclip</string>
+      <key>PayloadType</key>
+      <string>com.apple.webClip.managed</string>
+      <key>PayloadUUID</key>
+      <string>D9C54C1B-9A21-4253-A5FF-532C355F6D7F</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>Precomposed</key>
+      <true/>
+      <key>URL</key>
+      <string>https://alavancagem940-web.github.io/trilhapy/</string>
+    </dict>
+  </array>
+  <key>PayloadDescription</key>
+  <string>Coloca o TrilhaPy na Tela de Início como um aplicativo.</string>
+  <key>PayloadDisplayName</key>
+  <string>TrilhaPy</string>
+  <key>PayloadIdentifier</key>
+  <string>web.alavancagem940.trilhapy</string>
+  <key>PayloadOrganization</key>
+  <string>TrilhaPy</string>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>8E090436-3FBE-4FE3-BFEC-C20570786E25</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+</dict>
+</plist>

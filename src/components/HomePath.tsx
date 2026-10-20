@@ -35,14 +35,20 @@ export function HomePath({ store, tts, onStart, onReset, onInstall, canInstall }
 
       {!standalone ? (
         <div className="mt-3 rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
-          <p className="font-bold text-white">Use como app no celular</p>
+          <p className="font-bold text-white">Instalar no celular</p>
           <p className="mt-1 leading-relaxed">
-            iPhone: Safari → Compartilhar → Adicionar à Tela de Início → Abrir como App Web. Android: Chrome
-            → Instalar app / Adicionar à tela inicial.
+            iPhone: um toque instala o perfil e coloca o ícone na Tela de Início. Depois abra Ajustes →
+            Perfil baixado → Instalar.
           </p>
+          <a
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-extrabold text-primary-foreground"
+            href="./trilhapy.mobileconfig"
+          >
+            Instalar no iPhone
+          </a>
           {canInstall && onInstall ? (
-            <Button className="mt-3 w-full" variant="blue" onClick={onInstall}>
-              Instalar app
+            <Button className="mt-2 w-full" variant="blue" onClick={onInstall}>
+              Instalar no Android
             </Button>
           ) : null}
         </div>
