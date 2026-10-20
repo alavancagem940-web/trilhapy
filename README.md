@@ -12,7 +12,7 @@ O motor de voz no cliente monta SSML da Microsoft (rate `+0%`, pitch `+0Hz` — 
 - **Lista para trocar:** Francisca, Giovanna, Yara, Thalia, Manuela. Thalia usa `pt-BR-ThalitaNeural` (o id `ThaliaNeural` não sintetiza na Microsoft).
 - O TTS lê o **texto da lição** (pergunta, alternativa, teoria, feedback) de forma normal. Sem flerte, sem “chega mais perto”, sem “mmm”, sem provocação.
 - Lê a **Explicação Teórica Prática** e cada pergunta ao aparecer, lê a alternativa quando você toca, lê o feedback, e o botão **Ouvir** repete.
-- Fallback `speechSynthesis` **só se a rede falhar** e o MPEG neural não estiver no aparelho.
+- Fallback `speechSynthesis` se o MPEG neural falhar, for bloqueado no iPhone ou atrasar (~0,5 s). O texto falado continua o da lição, sem flerte. O primeiro toque destrava `Audio()` e `speechSynthesis`.
 
 No desenvolvimento local, o Vite expõe `POST /__tts` (hop same-origin para a síntese Microsoft). No GitHub Pages o app toca os MPEG neurais gerados no build com o mesmo SSML.
 
@@ -44,11 +44,12 @@ Outros comandos:
 ```bash
 npm test            # currículo, XP, SSML, síntese real Microsoft
 npm run test:playback  # síntese + play() no Chrome com Audio()
+npm run test:ios       # MPEG com UA de iPhone + toque / fallback Web Speech
 npm run build       # gera MPEG neurais + dist/ para GitHub Pages
 npm run preview     # serve o build na mesma porta 43817
 ```
 
-No iPhone, o Safari só libera `Audio()` depois do primeiro toque. Toque em **Ouvir** ou numa alternativa se o autoplay ficar mudo. Depois de uma atualização, feche o PWA na tela inicial e abra de novo para pegar o service worker novo (`trilhapy-didactic-tts-v6`).
+No iPhone, o Safari só libera áudio depois do primeiro toque. O app destrava `Audio()` e `speechSynthesis` nesse toque. Depois de uma atualização, **feche o PWA na tela inicial (deslize para cima e mate o app) e abra de novo** para pegar o service worker novo (`trilhapy-ios-audio-v7`).
 
 ## Publicar no GitHub Pages (incluindo o base path)
 

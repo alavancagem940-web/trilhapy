@@ -1,7 +1,6 @@
-import { useEffect } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { THEORY_CARD_TITLE, spokenTheory, type Unit } from '../lib/lessons'
-import { speak, stopTts, unlockTts } from '../lib/tts'
+import { speak, unlockTts } from '../lib/tts'
 import { Button } from './ui/button'
 import { SpeakerButton } from './SpeakerButton'
 
@@ -14,14 +13,6 @@ type TheoryCardProps = {
 export function TheoryCard({ unit, onContinue, onExit }: TheoryCardProps) {
   const theory = unit.theory
   const continueLabel = unit.kind === 'challenge' ? 'Começar o desafio' : 'Começar os exercícios'
-
-  useEffect(() => {
-    const token = window.setTimeout(() => speak(spokenTheory(unit), 'theory'), 160)
-    return () => {
-      window.clearTimeout(token)
-      stopTts()
-    }
-  }, [unit])
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

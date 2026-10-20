@@ -61,14 +61,17 @@ describe('voz neural Microsoft', () => {
   })
 
   it('gera hash estável para o MPEG empacotado', async () => {
-    const a = await ttsAssetHash('pt-BR-FranciscaNeural', 'oi')
-    const b = await ttsAssetHash('pt-BR-FranciscaNeural', 'oi')
-    const c = await ttsAssetHash('pt-BR-GiovannaNeural', 'oi')
+    const a = ttsAssetHash('pt-BR-FranciscaNeural', 'oi')
+    const b = ttsAssetHash('pt-BR-FranciscaNeural', 'oi')
+    const c = ttsAssetHash('pt-BR-GiovannaNeural', 'oi')
     expect(a).toBe(b)
     expect(a).not.toBe(c)
     expect(a).toMatch(/^[a-f0-9]{64}$/)
     expect(ttsCacheFingerprint('pt-BR-FranciscaNeural', 'oi')).toContain(SSML_PITCH)
     expect(ttsCacheFingerprint('pt-BR-FranciscaNeural', 'oi').startsWith('v2|')).toBe(true)
+    const { sha256Hex, sha256HexSync } = await import('./microsoft-neural')
+    expect(sha256HexSync('')).toBe('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+    expect(await sha256Hex('oi')).toBe(sha256HexSync('oi'))
   })
 
   it('reconhece cabeçalho MPEG', () => {

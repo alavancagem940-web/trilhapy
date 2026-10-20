@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
-import { THEORY_CARD_TITLE, checkAnswer, spokenPrompt, type Exercise, type Unit } from '../lib/lessons'
+import { THEORY_CARD_TITLE, checkAnswer, spokenPrompt, spokenTheory, type Exercise, type Unit } from '../lib/lessons'
 import { XP_PER_CORRECT, type ProgressStore } from '../lib/progress'
 import { speak, stopTts, unlockTts } from '../lib/tts'
 import { Button } from './ui/button'
@@ -31,7 +31,17 @@ export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonSc
   useEffect(() => () => stopTts(), [])
 
   if (phase === 'theory') {
-    return <TheoryCard unit={unit} onExit={onExit} onContinue={() => setPhase('quiz')} />
+    return (
+      <TheoryCard
+        unit={unit}
+        onExit={onExit}
+        onContinue={() => {
+          setPhase('quiz')
+          const first = unit.exercises[0]
+          if (first) speak(spokenPrompt(first), 'prompt')
+        }}
+      />
+    )
   }
 
   if (!exercise) {
@@ -63,7 +73,10 @@ export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonSc
         <button
           type="button"
           className="mt-2 text-left text-xs font-extrabold text-gold underline decoration-gold/40 underline-offset-4"
-          onClick={() => setPhase('theory')}
+          onClick={() => {
+            setPhase('theory')
+            speak(spokenTheory(unit), 'theory')
+          }}
         >
           Ver {THEORY_CARD_TITLE}
         </button>
@@ -91,6 +104,8 @@ export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonSc
           }
           setCheckedCorrect(false)
           setIndex(next)
+          const upcoming = unit.exercises[next]
+          if (upcoming) speak(spokenPrompt(upcoming), 'prompt')
         }}
       />
     </div>
@@ -125,11 +140,6 @@ function ExercisePanel({
   const [message, setMessage] = useState('')
   const [hint, setHint] = useState('')
   const fillRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    const token = window.setTimeout(() => speak(spokenPrompt(exercise), 'prompt'), 160)
-    return () => window.clearTimeout(token)
-  }, [exercise])
 
   function liveFillValue(): string {
     return fillRef.current?.value ?? fillValue

@@ -1,7 +1,7 @@
 {
   "name": "trilhapy",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "TrilhaPy",
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 43817",
     "test": "vitest run",
     "test:playback": "tsx scripts/tts-playback-probe.ts",
+    "test:ios": "tsx scripts/ios-tts-probe.ts",
     "icons": "python3 scripts/generate-icons.py"
   },
   "dependencies": {

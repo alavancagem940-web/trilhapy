@@ -46,6 +46,9 @@ export type TtsStatus = {
   voiceLabel: string
 }
 
+/** If packed MPEG is not playing by then, speak the lesson text with Web Speech. */
+export const MPEG_GRACE_MS = 480
+
 type StatusListener = (status: TtsStatus) => void
 
 const listeners = new Set<StatusListener>()
@@ -56,6 +59,8 @@ const SILENT_WAV =
 const FALLBACK_HINT =
   'Sem rede para a voz neural. Nesta vez o iPhone pode cair na voz do sistema — feche e abra de novo com internet.'
 
+const UNLOCK_EVENTS = ['pointerdown', 'touchstart', 'click', 'keydown'] as const
+
 let unlocked = false
 let engine: TtsEngine = HAPPY_PATH_ENGINE
 let voiceId: NeuralVoiceId = DEFAULT_VOICE_ID
@@ -63,6 +68,10 @@ let hint: string | null = null
 let player: HTMLAudioElement | null = null
 let objectUrl: string | null = null
 let speakSeq = 0
+let neuralSeq = -1
+let graceTimer: ReturnType<typeof setTimeout> | null = null
+let resumeTimer: ReturnType<typeof setInterval> | null = null
+let unlockBound = false
 
 function hasAudioElement(): boolean {
   return typeof Audio !== 'undefined'
@@ -96,11 +105,25 @@ function assetUrl(path: string): string {
   return `${prefix}${path}`
 }
 
+function packedMpegUrl(spoken: string, voice: NeuralVoiceId): string {
+  return assetUrl(ttsAssetPath(voice, ttsAssetHash(voice, spoken)))
+}
+
 function getPlayer(): HTMLAudioElement {
   if (!player) {
     player = new Audio()
     player.preload = 'auto'
     player.setAttribute('playsinline', 'true')
+    player.setAttribute('webkit-playsinline', 'true')
+    player.setAttribute('aria-hidden', 'true')
+    if (typeof document !== 'undefined' && document.body) {
+      player.style.position = 'absolute'
+      player.style.width = '0'
+      player.style.height = '0'
+      player.style.opacity = '0'
+      player.style.pointerEvents = 'none'
+      document.body.appendChild(player)
+    }
   }
   return player
 }
@@ -109,6 +132,35 @@ function releaseObjectUrl(): void {
   if (objectUrl) {
     globalThis.URL.revokeObjectURL(objectUrl)
     objectUrl = null
+  }
+}
+
+function speechSynth(): SpeechSynthesis | null {
+  const root = typeof window !== 'undefined' ? window : globalThis
+  if (!root || !('speechSynthesis' in root)) return null
+  return (root as typeof globalThis & { speechSynthesis: SpeechSynthesis }).speechSynthesis
+}
+
+function cancelWebSpeech(): void {
+  if (resumeTimer != null) {
+    clearInterval(resumeTimer)
+    resumeTimer = null
+  }
+  const synth = speechSynth()
+  if (!synth) return
+  try {
+    synth.cancel()
+  } catch {
+    // Ignore.
+  }
+}
+
+function pauseAudioKeepingUnlock(): void {
+  if (!player) return
+  try {
+    player.pause()
+  } catch {
+    // Ignore DOM exceptions while pausing.
   }
 }
 
@@ -152,53 +204,70 @@ export function initTts(): void {
   engine = HAPPY_PATH_ENGINE
   hint = null
   emit()
-  if (typeof window === 'undefined') return
-  const unlock = () => {
-    unlockTts()
-    window.removeEventListener('pointerdown', unlock)
-    window.removeEventListener('keydown', unlock)
+  if (typeof window === 'undefined' || unlockBound) return
+  unlockBound = true
+  const unlock = () => unlockTts()
+  for (const name of UNLOCK_EVENTS) {
+    window.addEventListener(name, unlock, { passive: true, capture: true })
   }
-  window.addEventListener('pointerdown', unlock, { passive: true })
-  window.addEventListener('keydown', unlock)
 }
 
-export function unlockTts(): void {
-  if (!hasAudioElement() || unlocked) return
-  unlocked = true
+function primeAudioIfIdle(): void {
+  if (!hasAudioElement()) return
+  const audio = getPlayer()
+  const src = audio.currentSrc || audio.src
+  const playingPacked = Boolean(src) && !src.startsWith('data:') && !audio.paused
+  if (playingPacked) return
   try {
-    const audio = getPlayer()
+    audio.muted = false
     audio.src = SILENT_WAV
     void audio.play().then(() => {
-      audio.pause()
-      audio.currentTime = 0
+      if ((audio.currentSrc || audio.src).startsWith('data:')) {
+        audio.pause()
+        audio.currentTime = 0
+      }
     }).catch(() => {
-      // Later speak() still runs from a tap.
+      // speak() still runs from the same tap.
     })
   } catch {
     // iOS may reject silent priming.
   }
+}
+
+function primeWebSpeech(): void {
+  const synth = speechSynth()
+  if (!synth) return
+  try {
+    synth.cancel()
+    const warm = new SpeechSynthesisUtterance(' ')
+    warm.lang = TTS_LANG
+    warm.volume = 0
+    warm.rate = 1
+    warm.pitch = 1
+    synth.speak(warm)
+  } catch {
+    // Compact iOS voices still unlock on a later speak().
+  }
+}
+
+export function unlockTts(): void {
+  if (!hasAudioElement() && !speechSynth()) return
+  unlocked = true
+  primeAudioIfIdle()
+  primeWebSpeech()
   emit()
 }
 
 export function stopTts(): void {
   speakSeq += 1
-  if (player) {
-    try {
-      player.pause()
-      player.removeAttribute('src')
-      player.load()
-    } catch {
-      // Ignore DOM exceptions while tearing down.
-    }
+  neuralSeq = -1
+  if (graceTimer != null) {
+    clearTimeout(graceTimer)
+    graceTimer = null
   }
+  pauseAudioKeepingUnlock()
   releaseObjectUrl()
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    try {
-      window.speechSynthesis.cancel()
-    } catch {
-      // Ignore.
-    }
-  }
+  cancelWebSpeech()
 }
 
 async function fetchMpeg(url: string, init?: RequestInit): Promise<Blob | null> {
@@ -209,7 +278,87 @@ async function fetchMpeg(url: string, init?: RequestInit): Promise<Blob | null> 
   return new Blob([buffer], { type: 'audio/mpeg' })
 }
 
-async function synthesizeNeural(spoken: string, voice: NeuralVoiceId): Promise<Blob> {
+function playFromUrl(url: string): Promise<void> {
+  const audio = getPlayer()
+  releaseObjectUrl()
+  audio.src = url
+  audio.volume = TTS_VOLUME
+  return audio.play()
+}
+
+function playBlob(blob: Blob): Promise<void> {
+  const audio = getPlayer()
+  releaseObjectUrl()
+  objectUrl = globalThis.URL.createObjectURL(blob)
+  audio.src = objectUrl
+  audio.volume = TTS_VOLUME
+  return audio.play()
+}
+
+function watchWebSpeech(): void {
+  const synth = speechSynth()
+  if (!synth || resumeTimer != null) return
+  resumeTimer = setInterval(() => {
+    try {
+      synth.resume()
+    } catch {
+      // Ignore.
+    }
+  }, 4000)
+}
+
+function speakWebSpeechFallback(spoken: string): void {
+  const synth = speechSynth()
+  if (!synth) {
+    throw new Error('no-webspeech')
+  }
+  synth.cancel()
+  const utterance = new SpeechSynthesisUtterance(spoken)
+  utterance.lang = TTS_LANG
+  utterance.rate = TTS_RATE
+  utterance.pitch = TTS_PITCH
+  utterance.volume = TTS_VOLUME
+  synth.speak(utterance)
+  watchWebSpeech()
+}
+
+function startWebSpeechFallback(seq: number, spoken: string): void {
+  if (seq !== speakSeq || neuralSeq === seq) return
+  try {
+    speakWebSpeechFallback(spoken)
+    engine = 'webspeech-fallback'
+    hint = FALLBACK_HINT
+    emit()
+  } catch {
+    engine = 'unavailable'
+    hint = 'Não foi possível falar neste navegador.'
+    emit()
+  }
+}
+
+function markNeuralPlaying(seq: number): void {
+  if (seq !== speakSeq) return
+  neuralSeq = seq
+  if (graceTimer != null) {
+    clearTimeout(graceTimer)
+    graceTimer = null
+  }
+  cancelWebSpeech()
+  engine = HAPPY_PATH_ENGINE
+  hint = null
+  emit()
+}
+
+async function playNeural(spoken: string, voice: NeuralVoiceId, seq: number): Promise<void> {
+  try {
+    await playFromUrl(packedMpegUrl(spoken, voice))
+    markNeuralPlaying(seq)
+    return
+  } catch {
+    // Packed file missing, blocked, or still buffering past play().
+  }
+  if (seq !== speakSeq) return
+
   if (import.meta.env.DEV) {
     try {
       const live = await fetchMpeg(liveTtsUrl(), {
@@ -217,77 +366,45 @@ async function synthesizeNeural(spoken: string, voice: NeuralVoiceId): Promise<B
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: spoken, voice }),
       })
-      if (live) return live
+      if (live && seq === speakSeq) {
+        await playBlob(live)
+        markNeuralPlaying(seq)
+        return
+      }
     } catch {
-      // Fall through to packed MPEG from the build.
+      // Fall through to Web Speech.
     }
   }
 
-  const hash = await ttsAssetHash(voice, spoken)
-  const packed = await fetchMpeg(assetUrl(ttsAssetPath(voice, hash)))
-  if (packed) return packed
-
-  throw new Error('neural-mpeg-unavailable')
-}
-
-function playBlob(blob: Blob): void {
-  const audio = getPlayer()
-  releaseObjectUrl()
-  objectUrl = globalThis.URL.createObjectURL(blob)
-  audio.src = objectUrl
-  audio.volume = TTS_VOLUME
-  const play = audio.play()
-  if (play) {
-    void play.catch(() => {
-      // Autoplay may still need a second tap on the speaker button.
-    })
+  if (seq !== speakSeq) return
+  if (graceTimer != null) {
+    clearTimeout(graceTimer)
+    graceTimer = null
   }
-}
-
-function speakWebSpeechFallback(spoken: string): void {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-    throw new Error('no-webspeech')
-  }
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(spoken)
-  utterance.lang = TTS_LANG
-  utterance.rate = TTS_RATE
-  utterance.pitch = TTS_PITCH
-  utterance.volume = TTS_VOLUME
-  window.speechSynthesis.speak(utterance)
+  startWebSpeechFallback(seq, spoken)
 }
 
 export function speak(text: string, _kind: SpeakKind = 'prompt'): void {
   if (!text.trim() || engine === 'unavailable') return
   const spoken = toSpokenText(text)
   if (!spoken) return
+  unlocked = true
   const voice = currentVoice().id
   const seq = ++speakSeq
-  stopTts()
+  if (graceTimer != null) {
+    clearTimeout(graceTimer)
+    graceTimer = null
+  }
+  pauseAudioKeepingUnlock()
+  cancelWebSpeech()
   speakSeq = seq
+  neuralSeq = -1
 
-  void (async () => {
-    try {
-      const blob = await synthesizeNeural(spoken, voice)
-      if (seq !== speakSeq) return
-      engine = HAPPY_PATH_ENGINE
-      hint = null
-      playBlob(blob)
-      emit()
-    } catch {
-      if (seq !== speakSeq) return
-      try {
-        speakWebSpeechFallback(spoken)
-        engine = 'webspeech-fallback'
-        hint = FALLBACK_HINT
-        emit()
-      } catch {
-        engine = 'unavailable'
-        hint = 'Não foi possível falar neste navegador.'
-        emit()
-      }
-    }
-  })()
+  graceTimer = setTimeout(() => {
+    startWebSpeechFallback(seq, spoken)
+  }, MPEG_GRACE_MS)
+
+  void playNeural(spoken, voice, seq)
 }
 
 export function isStandaloneDisplay(): boolean {

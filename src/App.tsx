@@ -8,6 +8,7 @@ import { ErrorScreen } from './components/ErrorScreen'
 import {
   challengePassThreshold,
   levelForUnit,
+  spokenTheory,
   unitById,
   validateCurriculum,
 } from './lib/lessons'
@@ -15,6 +16,7 @@ import { ProgressError, ProgressStore } from './lib/progress'
 import {
   getTtsStatus,
   initTts,
+  speak,
   stopTts,
   subscribeTts,
   unlockTts,
@@ -96,6 +98,7 @@ export default function App() {
       return
     }
     setScreen({ name: 'lesson', unitId })
+    speak(spokenTheory(unit), 'theory')
   }
 
   function finishUnit(unitId: string, correctCount: number) {
