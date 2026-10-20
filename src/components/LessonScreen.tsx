@@ -19,7 +19,6 @@ type LessonScreenProps = {
 export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonScreenProps) {
   const [index, setIndex] = useState(0)
   const correctCountRef = useRef(0)
-  const [retryNonce, setRetryNonce] = useState(0)
   const [checkedCorrect, setCheckedCorrect] = useState(false)
 
   const exercise = unit.exercises[index]
@@ -56,7 +55,7 @@ export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonSc
         <Progress value={progressValue} />
       </div>
       <ExercisePanel
-        key={`${exercise.id}-${retryNonce}`}
+        key={exercise.id}
         exercise={exercise}
         index={index}
         total={total}
@@ -69,7 +68,6 @@ export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonSc
         onIncorrect={() => setCheckedCorrect(false)}
         onRetry={() => {
           setCheckedCorrect(false)
-          setRetryNonce((value) => value + 1)
         }}
         onAdvance={() => {
           const next = index + 1
@@ -112,26 +110,44 @@ function ExercisePanel({
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null)
   const [message, setMessage] = useState('')
   const [hint, setHint] = useState('')
+  const fillRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const token = window.setTimeout(() => speak(spokenPrompt(exercise)), 160)
     return () => window.clearTimeout(token)
   }, [exercise])
 
+  function liveFillValue(): string {
+    return fillRef.current?.value ?? fillValue
+  }
+
   function currentSubmission(): unknown {
     if (exercise.type === 'multiple_choice') return selected
-    if (exercise.type === 'fill_blank') return fillValue
+    if (exercise.type === 'fill_blank') return liveFillValue()
     return orderBuilt
+  }
+
+  function retryInPlace() {
+    setChecked(false)
+    setLastCorrect(null)
+    setMessage('')
+    setHint('')
+    onRetry()
+    window.setTimeout(() => fillRef.current?.focus(), 40)
   }
 
   function verify() {
     unlockTts()
     if (checked) return
+    const fillNow = liveFillValue()
+    if (exercise.type === 'fill_blank' && fillNow !== fillValue) {
+      setFillValue(fillNow)
+    }
     if (exercise.type === 'multiple_choice' && !selected) {
       setHint('Escolha uma alternativa para verificar.')
       return
     }
-    if (exercise.type === 'fill_blank' && !fillValue.trim()) {
+    if (exercise.type === 'fill_blank' && !fillNow.trim()) {
       setHint('Digite uma resposta antes de verificar.')
       return
     }
@@ -140,8 +156,9 @@ function ExercisePanel({
       return
     }
     setHint('')
-    if (exercise.type === 'fill_blank') speak(fillValue)
-    const result = checkAnswer(exercise, currentSubmission())
+    const submission = exercise.type === 'fill_blank' ? fillNow : currentSubmission()
+    if (exercise.type === 'fill_blank') speak(fillNow)
+    const result = checkAnswer(exercise, submission)
     setChecked(true)
     setLastCorrect(result.correct)
     setMessage(result.message)
@@ -196,6 +213,7 @@ function ExercisePanel({
           <div className="mt-5">
             <p className="text-xs text-muted">Digite a resposta (código ou texto, conforme o enunciado).</p>
             <input
+              ref={fillRef}
               value={fillValue}
               disabled={checked}
               autoCapitalize="off"
@@ -297,7 +315,7 @@ function ExercisePanel({
             <p className="font-extrabold text-red">Ainda não</p>
             <p className="mt-1 text-sm leading-relaxed text-white/90">{message}</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button variant="outline" className="border-red text-red" onClick={onRetry}>
+              <Button variant="outline" className="border-red text-red" onClick={retryInPlace}>
                 Tentar de novo
               </Button>
               <Button variant="danger" onClick={onAdvance}>

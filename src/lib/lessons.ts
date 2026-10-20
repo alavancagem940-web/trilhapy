@@ -119,6 +119,7 @@ function order(
 
 function tidyInput(value: string): string {
   return value
+    .replace(/[\u200b\u200c\u200d\ufeff]/g, '')
     .replace(/\u00a0|\u202f|\u2007/g, ' ')
     .replace(/\uff1d/g, '=')
     .replace(/\u201c|\u201d|\u2018|\u2019/g, "'")
