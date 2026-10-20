@@ -135,14 +135,28 @@ function normCode(value: string): string {
   return text.replace(/\s+/g, '')
 }
 
-/** Also accept `nome = "Ana"` when the blank only lists `"Ana"`. */
+/** Also accept `nome = "Ana"` or `Ana` when the blank lists `"Ana"`. */
 const ASSIGN_PREFIX = /^[a-z_][\w.]*\s*=\s*/
+
+function unwrapQuotes(value: string): string {
+  if (value.length < 2) return value
+  const start = value[0]
+  const end = value[value.length - 1]
+  if ((start === "'" && end === "'") || (start === '"' && end === '"')) {
+    return value.slice(1, -1)
+  }
+  return value
+}
 
 function fillVariants(normalized: string): string[] {
   const values = new Set<string>([normalized])
   const withoutAssign = normalized.replace(ASSIGN_PREFIX, '')
   if (withoutAssign !== normalized && withoutAssign.length > 0) {
     values.add(withoutAssign)
+  }
+  for (const current of [...values]) {
+    const unquoted = unwrapQuotes(current)
+    if (unquoted !== current && unquoted.length > 0) values.add(unquoted)
   }
   return [...values]
 }
