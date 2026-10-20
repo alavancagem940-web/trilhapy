@@ -128,7 +128,31 @@ function normCode(value: string): string {
     .replaceAll('"', "'")
     .replaceAll('“', "'")
     .replaceAll('”', "'")
+    .replaceAll('‘', "'")
+    .replaceAll('’', "'")
+    .replaceAll('«', "'")
+    .replaceAll('»', "'")
   return text.replace(/\s+/g, '')
+}
+
+/** Also accept `nome = "Ana"` when the blank only lists `"Ana"`. */
+const ASSIGN_PREFIX = /^[a-z_][\w.]*\s*=\s*/
+
+function fillVariants(normalized: string): string[] {
+  const values = new Set<string>([normalized])
+  const withoutAssign = normalized.replace(ASSIGN_PREFIX, '')
+  if (withoutAssign !== normalized && withoutAssign.length > 0) {
+    values.add(withoutAssign)
+  }
+  return [...values]
+}
+
+function fillMatches(accepted: readonly string[], submission: string, norm: (value: string) => string): boolean {
+  const got = fillVariants(norm(submission))
+  return accepted.some((item) => {
+    const want = fillVariants(norm(item))
+    return got.some((value) => want.includes(value))
+  })
 }
 
 export function checkAnswer(exercise: Exercise, submission: unknown): CheckResult {
@@ -137,8 +161,7 @@ export function checkAnswer(exercise: Exercise, submission: unknown): CheckResul
     ok = String(submission) === String(exercise.answer)
   } else if (exercise.type === 'fill_blank') {
     const norm = exercise.normalize === 'code' ? normCode : normText
-    const needle = norm(String(submission))
-    ok = exercise.accepted.some((item) => norm(item) === needle)
+    ok = fillMatches(exercise.accepted, String(submission), norm)
   } else if (exercise.type === 'order_code') {
     const got = Array.isArray(submission) ? submission.map(String) : []
     const expected = exercise.lines
@@ -247,7 +270,7 @@ export const LEVELS: Level[] = [
           fill(
             'n1_q3',
             'Complete para guardar o texto Ana na variável nome:\n\nnome = ?',
-            ['"Ana"', "'Ana'"],
+            ['"Ana"', "'Ana'", 'nome = "Ana"', "nome = 'Ana'"],
             'Isso. Aspas marcam texto (string).',
             'Use aspas: nome = "Ana"',
             'Complete para guardar o texto Ana na variável nome. nome igual a quê?',
@@ -560,7 +583,7 @@ export const LEVELS: Level[] = [
           fill(
             'n3_q7',
             'Complete para criar uma lista com 1, 2 e 3:\n\nnumeros = ?',
-            ['[1, 2, 3]', '[1,2,3]'],
+            ['[1, 2, 3]', '[1,2,3]', 'numeros = [1, 2, 3]', 'numeros=[1,2,3]'],
             'Colchetes e vírgulas montam a lista.',
             'Use colchetes: [1, 2, 3]',
             'Complete para criar uma lista com 1, 2 e 3. numeros igual a quê?',

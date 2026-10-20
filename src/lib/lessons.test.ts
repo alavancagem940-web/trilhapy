@@ -53,6 +53,18 @@ describe('currículo', () => {
     }
   })
 
+  it('aceita a linha inteira em preenchimentos do tipo nome = ?', () => {
+    const exercise = [...iterUnits()]
+      .flatMap(([, unit]) => unit.exercises)
+      .find((item) => item.id === 'n1_q3')
+    expect(exercise).toBeTruthy()
+    if (!exercise) return
+    expect(checkAnswer(exercise, 'nome = "Ana"').correct).toBe(true)
+    expect(checkAnswer(exercise, "nome='Ana'").correct).toBe(true)
+    expect(checkAnswer(exercise, '"Ana"').correct).toBe(true)
+    expect(checkAnswer(exercise, 'nome = Ana').correct).toBe(false)
+  })
+
   it('rejeita respostas erradas', () => {
     const exercise = LEVELS[0]?.units[0]?.exercises[0]
     expect(exercise).toBeTruthy()
