@@ -66,6 +66,13 @@ describe('currículo', () => {
     expect(checkAnswer(exercise, 'nome = Ana').correct).toBe(true)
     expect(checkAnswer(exercise, '  NOME  =  "ANA"  ').correct).toBe(true)
     expect(checkAnswer(exercise, 'Lia').correct).toBe(false)
+    const right = checkAnswer(exercise, 'nome = "Ana"')
+    expect(right.correct).toBe(true)
+    expect(right.message).toBe(exercise.explainCorrect)
+    expect(right.message.toLowerCase()).not.toMatch(/ainda não|incorreto|use aspas/)
+    const wrong = checkAnswer(exercise, 'Lia')
+    expect(wrong.message).toMatch(/Você digitou: Lia/)
+    expect(wrong.message).toMatch(/Formas que passam/)
   })
 
   it('rejeita respostas erradas', () => {

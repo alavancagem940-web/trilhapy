@@ -117,14 +117,22 @@ function order(
   }
 }
 
+function tidyInput(value: string): string {
+  return value
+    .replace(/\u00a0|\u202f|\u2007/g, ' ')
+    .replace(/\uff1d/g, '=')
+    .replace(/\u201c|\u201d|\u2018|\u2019/g, "'")
+    .trim()
+}
+
 function normText(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, ' ')
+  return tidyInput(value).toLowerCase().replace(/\s+/g, ' ')
 }
 
 function normCode(value: string): string {
-  const text = value
-    .trim()
+  const text = tidyInput(value)
     .toLowerCase()
+    .replace(/[.;]+$/g, '')
     .replaceAll('"', "'")
     .replaceAll('“', "'")
     .replaceAll('”', "'")
@@ -169,6 +177,13 @@ function fillMatches(accepted: readonly string[], submission: string, norm: (val
   })
 }
 
+function fillWrongMessage(exercise: Exercise, submission: string): string {
+  const typed = submission.trim()
+  const examples = [...new Set(exercise.accepted)].slice(0, 3).join(', ')
+  if (!typed) return exercise.explainWrong
+  return `Ainda não. Você digitou: ${typed}. Formas que passam: ${examples}.`
+}
+
 export function checkAnswer(exercise: Exercise, submission: unknown): CheckResult {
   let ok = false
   if (exercise.type === 'multiple_choice') {
@@ -181,10 +196,11 @@ export function checkAnswer(exercise: Exercise, submission: unknown): CheckResul
     const expected = exercise.lines
     ok = got.length === expected.length && got.every((line, i) => line === expected[i])
   }
-  return {
-    correct: ok,
-    message: ok ? exercise.explainCorrect : exercise.explainWrong,
+  let message = ok ? exercise.explainCorrect : exercise.explainWrong
+  if (ok === false && exercise.type === 'fill_blank') {
+    message = fillWrongMessage(exercise, String(submission))
   }
+  return { correct: ok, message }
 }
 
 export function challengePassThreshold(total: number): number {
@@ -286,7 +302,7 @@ export const LEVELS: Level[] = [
             'Complete para guardar o texto Ana na variável nome:\n\nnome = ?',
             ['"Ana"', "'Ana'", 'nome = "Ana"', "nome = 'Ana'"],
             'Isso. Aspas marcam texto (string).',
-            'Use aspas: nome = "Ana"',
+            'Pode ser "Ana", Ana, ou a linha inteira nome = "Ana".',
             'Complete para guardar o texto Ana na variável nome. nome igual a quê?',
           ),
           order(

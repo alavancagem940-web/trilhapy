@@ -294,7 +294,7 @@ function ExercisePanel({
           </div>
         ) : (
           <div className="rounded-2xl bg-red-soft p-4">
-            <p className="font-extrabold text-red">Incorreto</p>
+            <p className="font-extrabold text-red">Ainda não</p>
             <p className="mt-1 text-sm leading-relaxed text-white/90">{message}</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="outline" className="border-red text-red" onClick={onRetry}>
