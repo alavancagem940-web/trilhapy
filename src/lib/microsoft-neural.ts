@@ -1,15 +1,15 @@
 import { LEVELS, spokenPrompt, spokenTheory } from './lessons'
-import { type SpeakKind, toFlirtySpeech } from './speech-persona'
+import { type SpeakKind, toSpokenText } from './speech-persona'
 
-/** Web Speech-equivalent persona: slow and slightly low. Microsoft SSML maps these. */
-export const TTS_RATE = 0.8
-export const TTS_PITCH = 0.82
+/** Web Speech fallback: natural didactic narration. */
+export const TTS_RATE = 1
+export const TTS_PITCH = 1
 export const TTS_VOLUME = 1
 export const TTS_LANG = 'pt-BR'
 
-/** Edge/Bing SSML prosody matching TTS_RATE 0.8 and a slightly lower pitch. */
-export const SSML_RATE = '-20%'
-export const SSML_PITCH = '-8Hz'
+/** Microsoft SSML at the neural default — natural classroom narration. */
+export const SSML_RATE = '+0%'
+export const SSML_PITCH = '+0Hz'
 
 export const VOICE_STORAGE_KEY = 'trilhapy.neuralVoice'
 export const HAPPY_PATH_ENGINE = 'microsoft-neural-audio' as const
@@ -30,16 +30,15 @@ export type NeuralVoice = {
 
 /**
  * Default: Francisca. Adult, clear, Brazilian Portuguese, not childish.
- * Closest Microsoft neural match to a low, composed adult dubber (Luísa Viotti
- * profile) without cloning her or using a model named after her. Pitch is
- * lowered in SSML. Giovanna/Yara/Manuela synthesize on Bing; Thalia is
+ * Microsoft neural catalog voice — not a clone of any dubber and not a model
+ * named after one. Giovanna/Yara/Manuela synthesize on Bing; Thalia is
  * Microsoft's ThalitaNeural (pt-BR-ThaliaNeural returns no audio).
  */
 export const DEFAULT_VOICE_ID: NeuralVoiceId = 'pt-BR-FranciscaNeural'
 
 export const DEFAULT_VOICE_WHY =
   'Francisca é a neural feminina pt-BR adulta, clara e estável da Microsoft — ' +
-  'não infantil, com tom que dá para deixar um pouco mais grave no SSML. ' +
+  'não infantil, com narração didática no ritmo natural. ' +
   'Não é clone da Luísa Viotti. Giovanna, Yara e Manuela entram na lista para troca; ' +
   'Thalia usa ThalitaNeural (o id ThaliaNeural não sintetiza).'
 
@@ -47,7 +46,7 @@ export const NEURAL_VOICES: readonly NeuralVoice[] = [
   {
     id: 'pt-BR-FranciscaNeural',
     label: 'Francisca',
-    blurb: 'Padrão. Adulta, clara, pt-BR; um pouco mais grave no SSML.',
+    blurb: 'Padrão. Adulta, clara, pt-BR, narração didática.',
   },
   {
     id: 'pt-BR-GiovannaNeural',
@@ -67,7 +66,7 @@ export const NEURAL_VOICES: readonly NeuralVoice[] = [
   {
     id: 'pt-BR-ManuelaNeural',
     label: 'Manuela',
-    blurb: 'Neural feminina pt-BR, alternativa mais grave de fala.',
+    blurb: 'Neural feminina pt-BR, outra opção da lista.',
   },
 ]
 
@@ -116,7 +115,7 @@ export function buildSsml(text: string, voice: NeuralVoiceId = DEFAULT_VOICE_ID)
 }
 
 export function ttsCacheFingerprint(voice: NeuralVoiceId, spoken: string): string {
-  return `v1|${voice}|${SSML_RATE}|${SSML_PITCH}|${spoken}`
+  return `v2|${voice}|${SSML_RATE}|${SSML_PITCH}|${spoken}`
 }
 
 export async function sha256Hex(value: string): Promise<string> {
@@ -151,7 +150,7 @@ export function collectSpokenLines(): SpokenLine[] {
   const lines: SpokenLine[] = []
 
   const add = (source: string, kind: SpeakKind) => {
-    const spoken = toFlirtySpeech(source, kind)
+    const spoken = toSpokenText(source)
     if (!spoken || seen.has(spoken)) return
     seen.add(spoken)
     lines.push({ kind, source, spoken })

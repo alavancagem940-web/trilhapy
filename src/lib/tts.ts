@@ -1,4 +1,4 @@
-import { type SpeakKind, toFlirtySpeech } from './speech-persona'
+import { type SpeakKind, toSpokenText } from './speech-persona'
 import {
   DEFAULT_VOICE_ID,
   HAPPY_PATH_ENGINE,
@@ -257,9 +257,9 @@ function speakWebSpeechFallback(spoken: string): void {
   window.speechSynthesis.speak(utterance)
 }
 
-export function speak(text: string, kind: SpeakKind = 'prompt'): void {
+export function speak(text: string, _kind: SpeakKind = 'prompt'): void {
   if (!text.trim() || engine === 'unavailable') return
-  const spoken = toFlirtySpeech(text, kind)
+  const spoken = toSpokenText(text)
   if (!spoken) return
   const voice = currentVoice().id
   const seq = ++speakSeq

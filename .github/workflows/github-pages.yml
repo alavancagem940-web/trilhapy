@@ -27,7 +27,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: public/tts
-          key: tts-${{ hashFiles('src/lib/**/*.ts', 'scripts/prebuild-tts.ts', 'scripts/bing-tts.ts') }}
+          key: tts-${{ hashFiles('src/lib/**/*.ts', 'scripts/prebuild-tts.ts', 'scripts/bing-tts.ts', 'scripts/tts-middleware.mjs') }}
       - run: npm test
       - name: Build with the GitHub Pages base path
         env:

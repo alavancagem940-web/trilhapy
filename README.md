@@ -1,16 +1,16 @@
 # TrilhaPy
 
-PWA mobile-first para aprender Python do zero, em português, no estilo Duolingo. Feita para o iPhone (Safari → Tela de Início) e Android (Chrome → Instalar app). Não é um binário da App Store: é um site que abre como app.
+PWA **TrilhaPy** no GitHub, mobile-first, para aprender Python do zero em português, no estilo Duolingo. Feita para o iPhone (Safari → Tela de Início) e Android (Chrome → Instalar app). Não é um binário da App Store: é um site que abre como app. Publicado em https://alavancagem940-web.github.io/trilhapy/ (o host é a conta do GitHub; o nome do app é TrilhaPy).
 
 A trilha vai do **Básico ao Avançado**. Cada módulo começa pelo card **Explicação Teórica Prática** (conceito, sintaxe e exemplos reais em Python) e só então vai aos exercícios. Cada nível fecha com um **desafio**. É preciso acertar cerca de **75%** do desafio para liberar a etapa seguinte. Respostas certas ficam verdes e valem XP; erradas ficam vermelhas — nos dois casos o app explica o **motivo correto**. **Não há vidas nem corações**: se errar, você tenta de novo ou avança, sem limite.
 
 ## Leitor de voz (Microsoft neural)
 
-O motor de voz no cliente monta SSML da Microsoft (rate `-20%`, pitch `-8Hz`) e **toca MPEG neural com `Audio()`**. No iPhone o caminho feliz **não usa** `speechSynthesis` nem a voz compacta do sistema.
+O motor de voz no cliente monta SSML da Microsoft (rate `+0%`, pitch `+0Hz` — narração didática natural) e **toca MPEG neural com `Audio()`**. No iPhone o caminho feliz **não usa** `speechSynthesis` nem a voz compacta do sistema.
 
-- **Padrão: Francisca** (`pt-BR-FranciscaNeural`). Adulta, clara, pt-BR, não infantil — o perfil mais próximo de uma dubladora grave e composta (referência: Luísa Viotti) **sem clonar** a voz dela e sem modelo com o nome dela. O tom fica um pouco mais grave no SSML.
+- **Padrão: Francisca** (`pt-BR-FranciscaNeural`). Adulta, clara, pt-BR, não infantil. Não é clone da Luísa Viotti nem modelo com o nome dela.
 - **Lista para trocar:** Francisca, Giovanna, Yara, Thalia, Manuela. Thalia usa `pt-BR-ThalitaNeural` (o id `ThaliaNeural` não sintetiza na Microsoft).
-- Persona falada (só áudio): entrega lenta, íntima e flertante. O texto na tela continua didático.
+- O TTS lê o **texto da lição** (pergunta, alternativa, teoria, feedback) de forma normal. Sem flerte, sem “chega mais perto”, sem “mmm”, sem provocação.
 - Lê a **Explicação Teórica Prática** e cada pergunta ao aparecer, lê a alternativa quando você toca, lê o feedback, e o botão **Ouvir** repete.
 - Fallback `speechSynthesis` **só se a rede falhar** e o MPEG neural não estiver no aparelho.
 
@@ -48,7 +48,7 @@ npm run build       # gera MPEG neurais + dist/ para GitHub Pages
 npm run preview     # serve o build na mesma porta 43817
 ```
 
-No iPhone, o Safari só libera `Audio()` depois do primeiro toque. Toque em **Ouvir** ou numa alternativa se o autoplay ficar mudo. Depois de uma atualização, feche o PWA na tela inicial e abra de novo para pegar o service worker novo (`trilhapy-ms-neural-v5`).
+No iPhone, o Safari só libera `Audio()` depois do primeiro toque. Toque em **Ouvir** ou numa alternativa se o autoplay ficar mudo. Depois de uma atualização, feche o PWA na tela inicial e abra de novo para pegar o service worker novo (`trilhapy-didactic-tts-v6`).
 
 ## Publicar no GitHub Pages (incluindo o base path)
 
@@ -115,7 +115,7 @@ O ícone usa `apple-touch-icon`, `theme-color` `#131F24` e `display: standalone`
 - `src/lib/progress.ts` — XP e desbloqueio no `localStorage`
 - `src/lib/microsoft-neural.ts` — vozes, SSML, hash do MPEG
 - `src/lib/tts.ts` — motor no cliente: `Audio()` + MPEG neural Microsoft, sem Web Speech no caminho feliz
-- `src/lib/speech-persona.ts` — só o texto falado (persona)
+- `src/lib/speech-persona.ts` — normaliza o texto falado (sem persona extra)
 - `scripts/bing-tts.ts` — síntese Microsoft no build e nos testes
 - `src/components/` — trilha, lição, estados vazio / carregando / erro
 - `public/` — ícones PWA e `apple-touch-icon.png`

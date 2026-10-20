@@ -17,7 +17,7 @@ function buildSsml(text, voice) {
   const body = escapeSsml(text.trim())
   return (
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="pt-BR">` +
-    `<voice name="${voice}"><prosody rate="-20%" pitch="-8Hz">${body}</prosody></voice></speak>`
+    `<voice name="${voice}"><prosody rate="+0%" pitch="+0Hz">${body}</prosody></voice></speak>`
   )
 }
 

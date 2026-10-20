@@ -57,7 +57,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: 'trilhapy-ms-neural-v5',
+        cacheId: 'trilhapy-didactic-tts-v6',
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}'],
         navigateFallback: 'index.html',
@@ -66,7 +66,7 @@ export default defineConfig({
             urlPattern: /\/tts\/.*\.mp3$/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'trilhapy-neural-mp3-v5',
+              cacheName: 'trilhapy-neural-mp3-v6',
               expiration: { maxEntries: 2500, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },

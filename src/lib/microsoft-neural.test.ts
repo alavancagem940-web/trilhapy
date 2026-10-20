@@ -18,7 +18,7 @@ import {
 } from './microsoft-neural'
 
 describe('voz neural Microsoft', () => {
-  it('escolhe Francisca como padrão adulta/grave/clara pt-BR, sem clonar dubladora', () => {
+  it('escolhe Francisca como padrão adulta/clara pt-BR, sem clonar dubladora', () => {
     expect(DEFAULT_VOICE_ID).toBe('pt-BR-FranciscaNeural')
     expect(NEURAL_VOICES.map((voice) => voice.label)).toEqual([
       'Francisca',
@@ -29,6 +29,7 @@ describe('voz neural Microsoft', () => {
     ])
     expect(NEURAL_VOICES[0]?.id).toBe('pt-BR-FranciscaNeural')
     expect(DEFAULT_VOICE_WHY.toLowerCase()).toMatch(/francisca/)
+    expect(DEFAULT_VOICE_WHY.toLowerCase()).toMatch(/didática/)
     expect(DEFAULT_VOICE_WHY.toLowerCase()).not.toMatch(/fish audio|luísa viotti neural/)
     expect(DEFAULT_VOICE_WHY.toLowerCase()).not.toMatch(/clonar a voz/)
     expect(voiceById('pt-BR-ThalitaNeural').label).toBe('Thalia')
@@ -36,26 +37,27 @@ describe('voz neural Microsoft', () => {
     expect(isNeuralVoiceId('pt-BR-ThaliaNeural')).toBe(false)
   })
 
-  it('mantém fala lenta e um pouco grave no SSML da Microsoft', () => {
-    expect(TTS_RATE).toBe(0.8)
-    expect(TTS_PITCH).toBe(0.82)
-    expect(SSML_RATE).toBe('-20%')
-    expect(SSML_PITCH).toBe('-8Hz')
+  it('usa rate e pitch naturais de narração didática', () => {
+    expect(TTS_RATE).toBe(1)
+    expect(TTS_PITCH).toBe(1)
+    expect(SSML_RATE).toBe('+0%')
+    expect(SSML_PITCH).toBe('+0Hz')
     const ssml = buildSsml('Olá <mundo> & cia', 'pt-BR-FranciscaNeural')
     expect(ssml).toContain('name="pt-BR-FranciscaNeural"')
-    expect(ssml).toContain('rate="-20%"')
-    expect(ssml).toContain('pitch="-8Hz"')
+    expect(ssml).toContain('rate="+0%"')
+    expect(ssml).toContain('pitch="+0Hz"')
     expect(ssml).toContain('Olá &lt;mundo&gt; &amp; cia')
   })
 
-  it('coleta falas da persona sem reescrever o currículo na tela', () => {
+  it('coleta o texto da lição sem reescrever o currículo na tela', () => {
     const lines = collectSpokenLines()
     expect(lines.length).toBeGreaterThan(40)
     expect(lines.some((line) => line.kind === 'theory')).toBe(true)
     expect(lines.some((line) => line.kind === 'prompt')).toBe(true)
     const first = LEVELS[0]?.units[0]
     expect(first?.theory.concept.startsWith('Sss...')).toBe(false)
-    expect(lines.some((line) => line.spoken.includes(first?.theory.speak ?? '---'))).toBe(true)
+    const theorySpeak = first?.theory.speak ?? ''
+    expect(lines.some((line) => line.spoken === theorySpeak.replace(/\s+/g, ' ').trim())).toBe(true)
   })
 
   it('gera hash estável para o MPEG empacotado', async () => {
@@ -66,6 +68,7 @@ describe('voz neural Microsoft', () => {
     expect(a).not.toBe(c)
     expect(a).toMatch(/^[a-f0-9]{64}$/)
     expect(ttsCacheFingerprint('pt-BR-FranciscaNeural', 'oi')).toContain(SSML_PITCH)
+    expect(ttsCacheFingerprint('pt-BR-FranciscaNeural', 'oi').startsWith('v2|')).toBe(true)
   })
 
   it('reconhece cabeçalho MPEG', () => {

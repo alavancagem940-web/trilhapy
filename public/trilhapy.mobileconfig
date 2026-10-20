@@ -34,7 +34,7 @@ ABIAEgASABIAEgASABIAEgDSQB1+KAdO0pnvTAAAAABJRU5ErkJggg==
       <key>PayloadDisplayName</key>
       <string>TrilhaPy</string>
       <key>PayloadIdentifier</key>
-      <string>web.alavancagem940.trilhapy.webclip</string>
+      <string>web.trilhapy.webclip</string>
       <key>PayloadType</key>
       <string>com.apple.webClip.managed</string>
       <key>PayloadUUID</key>
@@ -52,7 +52,7 @@ ABIAEgASABIAEgASABIAEgDSQB1+KAdO0pnvTAAAAABJRU5ErkJggg==
   <key>PayloadDisplayName</key>
   <string>TrilhaPy</string>
   <key>PayloadIdentifier</key>
-  <string>web.alavancagem940.trilhapy</string>
+  <string>web.trilhapy</string>
   <key>PayloadOrganization</key>
   <string>TrilhaPy</string>
   <key>PayloadRemovalDisallowed</key>
