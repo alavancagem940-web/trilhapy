@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   LEVELS,
+  THEORY_CARD_TITLE,
   challengePassThreshold,
   checkAnswer,
+  findExercise,
   iterUnits,
   validateCurriculum,
 } from './lessons'
@@ -91,5 +93,67 @@ describe('currículo', () => {
   it('exige cerca de 75% no desafio', () => {
     expect(challengePassThreshold(4)).toBe(3)
     expect(challengePassThreshold(3)).toBe(3)
+  })
+
+  it('coloca Explicação Teórica Prática em todo módulo, com conceito, sintaxe e Python real', () => {
+    expect(THEORY_CARD_TITLE).toBe('Explicação Teórica Prática')
+    let units = 0
+    for (const [, unit] of iterUnits()) {
+      units += 1
+      expect(unit.theory.concept.length).toBeGreaterThan(40)
+      expect(unit.theory.syntax.length).toBeGreaterThan(40)
+      expect(unit.theory.syntaxCode).toMatch(/[=:]/)
+      expect(unit.theory.examples.length).toBeGreaterThanOrEqual(1)
+      for (const example of unit.theory.examples) {
+        expect(example.code).toMatch(/print|def |if |for |while |class |return|Path|self\./)
+        expect(example.code.toLowerCase()).not.toMatch(/placeholder|lorem|todo/)
+        expect(example.code).not.toContain('...')
+      }
+    }
+    expect(units).toBeGreaterThanOrEqual(15)
+  })
+
+  it('explica o motivo no acerto e no erro, sem texto genérico', () => {
+    for (const [, unit] of iterUnits()) {
+      for (const exercise of unit.exercises) {
+        const right =
+          exercise.type === 'multiple_choice'
+            ? exercise.answer
+            : exercise.type === 'fill_blank'
+              ? exercise.accepted[0]
+              : exercise.lines
+        const correct = checkAnswer(exercise, right)
+        expect(correct.correct, exercise.id).toBe(true)
+        expect(correct.message).toBe(exercise.explainCorrect)
+        expect(correct.message.length).toBeGreaterThan(40)
+        expect(correct.message.toLowerCase()).not.toMatch(/^(certo|ok|isso)!?$/)
+
+        const wrongValue =
+          exercise.type === 'multiple_choice'
+            ? (exercise.choices.find((choice) => choice !== exercise.answer) ?? '___nope___')
+            : exercise.type === 'fill_blank'
+              ? 'resposta-propositadamente-errada-xxx'
+              : [...exercise.lines].reverse()
+        const wrong = checkAnswer(exercise, wrongValue)
+        expect(wrong.correct, exercise.id).toBe(false)
+        expect(wrong.message).toContain(exercise.explainWrong)
+        expect(exercise.explainWrong.length).toBeGreaterThan(40)
+        expect(exercise.explainWrong.toLowerCase()).not.toMatch(/^(errado|incorreto|ainda não)!?\.?$/)
+      }
+    }
+  })
+
+  it('no preenchimento, o erro ensina o motivo e ainda mostra o que foi digitado', () => {
+    const exercise = findExercise('n1_q3')
+    expect(exercise).toBeTruthy()
+    if (!exercise) return
+    const wrong = checkAnswer(exercise, 'Lia')
+    expect(wrong.correct).toBe(false)
+    expect(wrong.message).toContain(exercise.explainWrong)
+    expect(wrong.message).toMatch(/Você digitou: Lia/)
+    expect(wrong.message).toMatch(/Formas que passam/)
+    const right = checkAnswer(exercise, 'nome = "Ana"')
+    expect(right.message).toBe(exercise.explainCorrect)
+    expect(right.message.toLowerCase()).not.toMatch(/ainda não|você digitou/)
   })
 })

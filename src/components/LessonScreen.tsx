@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
-import { checkAnswer, spokenPrompt, type Exercise, type Unit } from '../lib/lessons'
+import { THEORY_CARD_TITLE, checkAnswer, spokenPrompt, type Exercise, type Unit } from '../lib/lessons'
 import { XP_PER_CORRECT, type ProgressStore } from '../lib/progress'
 import { speak, stopTts, unlockTts } from '../lib/tts'
 import { Button } from './ui/button'
 import { Progress } from './ui/progress'
 import { SpeakerButton } from './SpeakerButton'
+import { TheoryCard } from './TheoryCard'
 import { cn } from '../lib/cn'
 
 type LessonScreenProps = {
@@ -17,15 +18,21 @@ type LessonScreenProps = {
 }
 
 export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonScreenProps) {
+  const [phase, setPhase] = useState<'theory' | 'quiz'>('theory')
   const [index, setIndex] = useState(0)
   const correctCountRef = useRef(0)
   const [checkedCorrect, setCheckedCorrect] = useState(false)
 
   const exercise = unit.exercises[index]
   const total = unit.exercises.length
-  const progressValue = ((index + (checkedCorrect ? 1 : 0)) / Math.max(1, total)) * 100
+  const progressValue =
+    phase === 'theory' ? 0 : ((index + (checkedCorrect ? 1 : 0)) / Math.max(1, total)) * 100
 
   useEffect(() => () => stopTts(), [])
+
+  if (phase === 'theory') {
+    return <TheoryCard unit={unit} onExit={onExit} onContinue={() => setPhase('quiz')} />
+  }
 
   if (!exercise) {
     return (
@@ -53,6 +60,13 @@ export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonSc
       </div>
       <div className="px-4 pt-3">
         <Progress value={progressValue} />
+        <button
+          type="button"
+          className="mt-2 text-left text-xs font-extrabold text-gold underline decoration-gold/40 underline-offset-4"
+          onClick={() => setPhase('theory')}
+        >
+          Ver {THEORY_CARD_TITLE}
+        </button>
       </div>
       <ExercisePanel
         key={exercise.id}
@@ -305,6 +319,9 @@ function ExercisePanel({
         ) : lastCorrect ? (
           <div className="rounded-2xl bg-green-soft p-4">
             <p className="font-extrabold text-green">Correto! +{XP_PER_CORRECT} XP</p>
+            <p className="mt-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-green">
+              Por que está certo
+            </p>
             <p className="mt-1 text-sm leading-relaxed text-white/90">{message}</p>
             <Button className="mt-3 w-full" onClick={onAdvance}>
               Continuar
@@ -313,6 +330,9 @@ function ExercisePanel({
         ) : (
           <div className="rounded-2xl bg-red-soft p-4">
             <p className="font-extrabold text-red">Ainda não</p>
+            <p className="mt-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-red">
+              O motivo correto
+            </p>
             <p className="mt-1 text-sm leading-relaxed text-white/90">{message}</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="outline" className="border-red text-red" onClick={retryInPlace}>

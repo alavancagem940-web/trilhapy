@@ -19,8 +19,9 @@ describe('progresso', () => {
     const store = new ProgressStore(createMemoryStorage())
     store.load()
     const n1 = LEVELS[0]!
-    store.markUnitComplete(n1.units[0]!.id, 20)
-    store.markUnitComplete(n1.units[1]!.id, 20)
+    for (const unit of n1.units) {
+      if (unit.kind !== 'challenge') store.markUnitComplete(unit.id, 20)
+    }
     expect(store.isUnitUnlocked(n1.id, n1.units.at(-1)!.id)).toBe(true)
     expect(store.isLevelUnlocked(LEVELS[1]!.id)).toBe(false)
     store.markChallengePassed(n1.id, n1.units.at(-1)!.id, 40)

@@ -2,19 +2,19 @@
 
 PWA mobile-first para aprender Python do zero, em português, no estilo Duolingo. Feita para o iPhone (Safari → Tela de Início) e Android (Chrome → Instalar app). Não é um binário da App Store: é um site que abre como app.
 
-A trilha vai do **Básico ao Avançado**. Cada nível tem lições curtas e um **desafio final**. É preciso acertar cerca de **75%** do desafio para liberar a etapa seguinte. Respostas certas ficam verdes e valem XP; erradas ficam vermelhas. **Não há vidas nem corações**: se errar, você tenta de novo ou avança, sem limite.
+A trilha vai do **Básico ao Avançado**. Cada módulo começa pelo card **Explicação Teórica Prática** (conceito, sintaxe e exemplos reais em Python) e só então vai aos exercícios. Cada nível fecha com um **desafio**. É preciso acertar cerca de **75%** do desafio para liberar a etapa seguinte. Respostas certas ficam verdes e valem XP; erradas ficam vermelhas — nos dois casos o app explica o **motivo correto**. **Não há vidas nem corações**: se errar, você tenta de novo ou avança, sem limite.
 
-O leitor de voz usa a **Web Speech API** on-device (sem chave e sem API paga). Ele escolhe a melhor voz **neural/enhanced/premium/natural** em `pt-BR` — prioriza `FranciscaNeural` / `ThaliaNeural` se o aparelho as expuser — e cai para a melhor neural feminina pt-BR, depois para a voz do sistema. Fala lenta e clara (`rate` 0.85, `pitch` 0.9, `volume` 1). Lê cada pergunta ao aparecer, lê a alternativa quando você toca, e o botão **Ouvir** repete. O áudio não trava a tela.
+O leitor de voz usa a **Web Speech API** on-device (sem chave e sem API paga). Ele escolhe a melhor voz **neural/enhanced/premium/natural** em `pt-BR` — prioriza `FranciscaNeural` / `ThaliaNeural` se o aparelho as expuser — e cai para a melhor neural feminina pt-BR, depois para a voz do sistema. Fala lenta e clara (`rate` 0.85, `pitch` 0.9, `volume` 1). Lê a **Explicação Teórica Prática** e cada pergunta ao aparecer, lê a alternativa quando você toca, e o botão **Ouvir** repete. O áudio não trava a tela.
 
 ## Primeira trilha
 
-| Nível | Faixa | O que você pratica |
+| Nível | Faixa | Módulos |
 | --- | --- | --- |
-| 1 | Básico | Lógica, variáveis, tipos de dados e `print` |
-| 2 | Elementar | `if`/`else` e operadores lógicos |
-| 3 | Intermediário | `for`/`while` e listas |
-| 4 | Intermediário+ | Funções e `try`/`except` |
-| Avançado | Avançado | Orientação a objetos e automação |
+| 1 | Básico | Lógica básica · Variáveis · Tipos de dados · `print` · desafio |
+| 2 | Elementar | `if`/`else` · Comparação · Operadores lógicos · desafio |
+| 3 | Intermediário | `for`/`range` · `while` · Listas · desafio |
+| 4 | Intermediário+ | Funções · Parâmetros e `return` · `try`/`except` · desafio |
+| Avançado | Avançado | Classes · Atributos e métodos · Automação · desafio |
 
 Tipos de exercício: múltipla escolha, preenchimento e ordenar o código. O progresso fica só no `localStorage` deste aparelho — sem conta, sem banco e sem nuvem.
 
@@ -98,7 +98,9 @@ O ícone usa `apple-touch-icon`, `theme-color` `#131F24` e `display: standalone`
 
 ## Arquivos
 
-- `src/lib/lessons.ts` — currículo e correção
+- `src/lib/lessons.ts` — correção, desbloqueio e validação do currículo
+- `src/lib/curriculum/` — teoria e exercícios (N1–Avançado)
+- `src/components/TheoryCard.tsx` — card **Explicação Teórica Prática**
 - `src/lib/progress.ts` — XP e desbloqueio no `localStorage`
 - `src/lib/tts.ts` — Web Speech API neural em `pt-BR` (`TTS_RATE` / `TTS_PITCH` / `TTS_VOLUME`), sem bloquear a UI
 - `src/components/` — trilha, lição, estados vazio / carregando / erro

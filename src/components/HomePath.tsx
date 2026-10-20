@@ -27,8 +27,8 @@ export function HomePath({ store, tts, onStart, onReset, onInstall, canInstall }
         <h1 className="text-[1.65rem] font-extrabold leading-tight text-white">Sua trilha de Python</h1>
         <p className="mt-1 text-sm leading-relaxed text-muted">
           {empty
-            ? 'Você ainda não ganhou XP. Comece pelo Nível 1 — Básico.'
-            : 'Continue de onde parou. Cada módulo só abre o próximo depois do desafio (~75%).'}
+            ? 'Você ainda não ganhou XP. Comece pelo Nível 1 — Básico. Cada módulo abre com a Explicação Teórica Prática e só então os exercícios.'
+            : 'Continue de onde parou. Cada módulo começa pela Explicação Teórica Prática. O desafio (~75%) libera o próximo nível.'}
         </p>
         <p className="mt-2 text-xs text-muted">Leitor de voz: {tts.label}</p>
         {tts.hint ? <p className="mt-2 text-xs leading-relaxed text-gold">{tts.hint}</p> : null}

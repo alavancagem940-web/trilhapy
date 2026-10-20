@@ -154,6 +154,7 @@ export default function App() {
         ) : null}
         {screen.name === 'lesson' && unit && level ? (
           <LessonScreen
+            key={unit.id}
             unit={unit}
             store={store}
             onXp={refreshXp}
