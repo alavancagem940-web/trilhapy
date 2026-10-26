@@ -38,10 +38,36 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
   },
 ]
 
-export function firstUnseenTerm(text: string, seen: readonly string[]): GlossaryTerm | null {
+export type GlossarySpan = {
+  term: GlossaryTerm
+  start: number
+  end: number
+}
+
+export function glossarySpans(text: string): GlossarySpan[] {
+  const found: GlossarySpan[] = []
   for (const term of GLOSSARY) {
-    if (seen.includes(term.id)) continue
-    if (term.pattern.test(text)) return term
+    const flags = term.pattern.flags.includes('g') ? term.pattern.flags : `${term.pattern.flags}g`
+    const pattern = new RegExp(term.pattern.source, flags)
+    for (const match of text.matchAll(pattern)) {
+      if (match.index == null || match[0].length === 0) continue
+      found.push({ term, start: match.index, end: match.index + match[0].length })
+    }
+  }
+  found.sort((left, right) => left.start - right.start || right.end - left.end)
+  const kept: GlossarySpan[] = []
+  let cursor = 0
+  for (const span of found) {
+    if (span.start < cursor) continue
+    kept.push(span)
+    cursor = span.end
+  }
+  return kept
+}
+
+export function firstUnseenTerm(text: string, seen: readonly string[]): GlossaryTerm | null {
+  for (const span of glossarySpans(text)) {
+    if (!seen.includes(span.term.id)) return span.term
   }
   return null
 }

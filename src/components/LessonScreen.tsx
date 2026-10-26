@@ -8,7 +8,7 @@ import { shuffledChoices } from '../lib/shuffle'
 import { Button } from './ui/button'
 import { Progress } from './ui/progress'
 import { ExplainListenButton } from './ExplainListenButton'
-import { GlossaryNote } from './GlossaryNote'
+import { GlossaryText } from './GlossaryNote'
 import { NativeListenButton } from './NativeListenButton'
 import { TheoryCard } from './TheoryCard'
 import { cn } from '../lib/cn'
@@ -219,8 +219,9 @@ function ExercisePanel({
             <NativeListenButton phrase={exercise.lines.join('\n')} />
           ) : null}
         </div>
-        <h1 className="whitespace-pre-wrap text-[1.35rem] font-extrabold leading-snug text-white">{exercise.prompt}</h1>
-        <GlossaryNote text={exercise.prompt} seen={seenTerms} onSeen={onSeenTerm} />
+        <h1 className="whitespace-pre-wrap text-[1.35rem] font-extrabold leading-snug text-white">
+          <GlossaryText text={exercise.prompt} seen={seenTerms} onSeen={onSeenTerm} />
+        </h1>
 
         {exercise.type === 'multiple_choice' ? (
           <ul className="mt-5 flex flex-col gap-3">
