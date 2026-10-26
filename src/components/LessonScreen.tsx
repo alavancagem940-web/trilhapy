@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { THEORY_CARD_TITLE, checkAnswer, spokenPrompt, spokenTheory, type Exercise, type Unit } from '../lib/lessons'
+import { choiceSpeakKind } from '../lib/speech-persona'
 import { XP_PER_CORRECT, type ProgressStore } from '../lib/progress'
 import { speak, stopTts, unlockTts } from '../lib/tts'
 import { shuffledChoices } from '../lib/shuffle'
@@ -228,13 +229,13 @@ function ExercisePanel({
               const showGreen = checked && lastCorrect && choice === exercise.answer
               const showRed = checked && lastCorrect === false && choice === selected
               return (
-                <li key={choice}>
+                <li key={choice} className="flex flex-col gap-2">
                   <button
                     type="button"
                     disabled={checked}
                     onClick={() => {
                       setSelected(choice)
-                      speak(choice, 'choice')
+                      speak(choice, choiceSpeakKind(choice))
                     }}
                     className={cn(
                       'w-full rounded-2xl border-2 px-4 py-3.5 text-left text-[0.95rem] font-bold leading-snug text-white transition-colors touch-manipulation',
@@ -247,6 +248,11 @@ function ExercisePanel({
                   >
                     {choice}
                   </button>
+                  {choiceSpeakKind(choice) === 'native' ? (
+                    <NativeListenButton phrase={choice} />
+                  ) : (
+                    <ExplainListenButton text={choice} />
+                  )}
                 </li>
               )
             })}
@@ -311,7 +317,7 @@ function ExercisePanel({
                       return copy
                     })
                     setOrderBuilt((built) => [...built, line])
-                    speak(line, 'choice')
+                    speak(line, choiceSpeakKind(line))
                   }}
                   className="rounded-2xl border-2 border-line bg-card px-4 py-3 text-left font-mono text-[13px] text-white touch-manipulation"
                 >

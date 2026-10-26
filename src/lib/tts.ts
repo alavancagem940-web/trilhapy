@@ -362,6 +362,22 @@ function watchWebSpeech(): void {
   }, 4000)
 }
 
+function pickFallbackVoice(synth: SpeechSynthesis, lang: string): SpeechSynthesisVoice | null {
+  if (typeof synth.getVoices !== 'function') return null
+  const voices = synth.getVoices()
+  if (!voices?.length) return null
+  const prefix = lang.slice(0, 2).toLowerCase()
+  const same = voices.filter((item) => item.lang.toLowerCase().replace('_', '-').startsWith(prefix))
+  const pool = same.length > 0 ? same : voices
+  const male = /\b(david|daniel|mark|guy|george|ravi|antonio)\b/i
+  const female = /jenny|aria|sonia|zira|susan|samantha|victoria|karen|moira|fiona|ana|francisca|maria|lucia|hedda|helena|giovanna|yara|thalita|manuela/i
+  return (
+    pool.find((item) => female.test(item.name) && !male.test(item.name)) ??
+    pool.find((item) => !male.test(item.name)) ??
+    null
+  )
+}
+
 function speakWebSpeechFallback(spoken: string, voice: ClipVoiceId): void {
   const synth = speechSynth()
   if (!synth) {
@@ -373,6 +389,8 @@ function speakWebSpeechFallback(spoken: string, voice: ClipVoiceId): void {
   utterance.rate = voice === NATIVE_VOICE_ID ? 0.85 : TTS_RATE
   utterance.pitch = voice === NATIVE_VOICE_ID ? 0.92 : TTS_PITCH
   utterance.volume = TTS_VOLUME
+  const fallbackVoice = pickFallbackVoice(synth, utterance.lang)
+  if (fallbackVoice) utterance.voice = fallbackVoice
   synth.speak(utterance)
   watchWebSpeech()
 }
@@ -409,8 +427,10 @@ async function playNeural(spoken: string, voice: ClipVoiceId, seq: number): Prom
     await playFromUrl(packedMpegUrl(spoken, voice))
     markNeuralPlaying(seq)
     return
-  } catch {
-    // Packed file missing, blocked, or still buffering past play().
+  } catch (error) {
+    const aborted = error instanceof DOMException && error.name === 'AbortError'
+    if (aborted && seq !== speakSeq) return
+    // Packed file missing, blocked, or replaced by the next tap.
   }
   if (seq !== speakSeq) return
 

@@ -48,6 +48,10 @@ describe('voz neural Microsoft', () => {
     expect(ssml).toContain('rate="+0%"')
     expect(ssml).toContain('pitch="+0Hz"')
     expect(ssml).toContain('Olá &lt;mundo&gt; &amp; cia')
+    expect(ssml).not.toContain('break time=')
+    const paced = buildSsml('Primeiro o fato. Depois a decisão, com calma.', 'pt-BR-FranciscaNeural')
+    expect(paced).toContain('break time="520ms"')
+    expect(paced).toContain('break time="260ms"')
   })
 
   it('coleta o texto da lição sem reescrever o currículo na tela', () => {
@@ -72,7 +76,7 @@ describe('voz neural Microsoft', () => {
     expect(a).not.toBe(c)
     expect(a).toMatch(/^[a-f0-9]{64}$/)
     expect(ttsCacheFingerprint('pt-BR-FranciscaNeural', 'oi')).toContain(SSML_PITCH)
-    expect(ttsCacheFingerprint('pt-BR-FranciscaNeural', 'oi').startsWith('v2|')).toBe(true)
+    expect(ttsCacheFingerprint('pt-BR-FranciscaNeural', 'oi').startsWith('v3|teacher|')).toBe(true)
     const { sha256Hex, sha256HexSync } = await import('./microsoft-neural')
     expect(sha256HexSync('')).toBe('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
     expect(await sha256Hex('oi')).toBe(sha256HexSync('oi'))

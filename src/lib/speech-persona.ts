@@ -21,3 +21,14 @@ export function toSpokenText(text: string): string {
 
 export const NATIVE_LISTEN_LABEL = 'Ouvir Pronúncia Nativa'
 export const EXPLAIN_LISTEN_LABEL = 'Ouvir Explicação'
+
+const CODE =
+  /[=()[\]{}]|^\s*(print|def|class|for|while|if|elif|else|return|import|from)\b|\b(print|def|class|return|import|True|False|None)\b/
+
+/** Code and English tokens use Jenny. Portuguese sentences use the teacher voice. */
+export function choiceSpeakKind(choice: string): 'native' | 'explain' {
+  const text = choice.trim()
+  if (!text || /[áàâãéêíóôõúüç]/i.test(text)) return 'explain'
+  if (CODE.test(text)) return 'native'
+  return 'explain'
+}
