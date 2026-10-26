@@ -3,9 +3,12 @@ import { ChevronLeft } from 'lucide-react'
 import { THEORY_CARD_TITLE, checkAnswer, spokenPrompt, spokenTheory, type Exercise, type Unit } from '../lib/lessons'
 import { XP_PER_CORRECT, type ProgressStore } from '../lib/progress'
 import { speak, stopTts, unlockTts } from '../lib/tts'
+import { shuffledChoices } from '../lib/shuffle'
 import { Button } from './ui/button'
 import { Progress } from './ui/progress'
-import { SpeakerButton } from './SpeakerButton'
+import { ExplainListenButton } from './ExplainListenButton'
+import { GlossaryNote } from './GlossaryNote'
+import { NativeListenButton } from './NativeListenButton'
 import { TheoryCard } from './TheoryCard'
 import { cn } from '../lib/cn'
 
@@ -96,6 +99,8 @@ export function LessonScreen({ unit, store, onXp, onExit, onFinished }: LessonSc
         onRetry={() => {
           setCheckedCorrect(false)
         }}
+        seenTerms={store.seenTerms}
+        onSeenTerm={(id) => store.noteTerm(id)}
         onAdvance={() => {
           const next = index + 1
           if (next >= total) {
@@ -120,6 +125,8 @@ type ExercisePanelProps = {
   onIncorrect: () => void
   onRetry: () => void
   onAdvance: () => void
+  seenTerms: readonly string[]
+  onSeenTerm: (id: string) => void
 }
 
 function ExercisePanel({
@@ -130,11 +137,16 @@ function ExercisePanel({
   onIncorrect,
   onRetry,
   onAdvance,
+  seenTerms,
+  onSeenTerm,
 }: ExercisePanelProps) {
   const [selected, setSelected] = useState<string | null>(null)
   const [fillValue, setFillValue] = useState('')
   const [orderBuilt, setOrderBuilt] = useState<string[]>([])
   const [pool, setPool] = useState(() => shuffleLines(exercise))
+  const [choices, setChoices] = useState(() =>
+    exercise.type === 'multiple_choice' ? shuffledChoices(exercise.choices) : exercise.choices,
+  )
   const [checked, setChecked] = useState(false)
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null)
   const [message, setMessage] = useState('')
@@ -157,6 +169,7 @@ function ExercisePanel({
     setMessage('')
     setHint('')
     onRetry()
+    if (exercise.type === 'multiple_choice') setChoices(shuffledChoices(exercise.choices))
     window.setTimeout(() => fillRef.current?.focus(), 40)
   }
 
@@ -196,17 +209,21 @@ function ExercisePanel({
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-4 pb-36">
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <p className="text-xs font-bold text-muted">
             Pergunta {index + 1} de {total}
           </p>
-          <SpeakerButton onClick={() => speak(spokenPrompt(exercise), 'prompt')} />
+          <ExplainListenButton text={spokenPrompt(exercise)} />
+          {exercise.lines.length > 0 ? (
+            <NativeListenButton phrase={exercise.lines.join('\n')} />
+          ) : null}
         </div>
         <h1 className="whitespace-pre-wrap text-[1.35rem] font-extrabold leading-snug text-white">{exercise.prompt}</h1>
+        <GlossaryNote text={exercise.prompt} seen={seenTerms} onSeen={onSeenTerm} />
 
         {exercise.type === 'multiple_choice' ? (
           <ul className="mt-5 flex flex-col gap-3">
-            {exercise.choices.map((choice) => {
+            {choices.map((choice) => {
               const isSelected = selected === choice
               const showGreen = checked && lastCorrect && choice === exercise.answer
               const showRed = checked && lastCorrect === false && choice === selected
@@ -336,6 +353,9 @@ function ExercisePanel({
               Por que está certo
             </p>
             <p className="mt-1 text-sm leading-relaxed text-white/90">{message}</p>
+            <div className="mt-2">
+              <ExplainListenButton text={message} />
+            </div>
             <Button className="mt-3 w-full" onClick={onAdvance}>
               Continuar
             </Button>
@@ -347,6 +367,9 @@ function ExercisePanel({
               O motivo correto
             </p>
             <p className="mt-1 text-sm leading-relaxed text-white/90">{message}</p>
+            <div className="mt-2">
+              <ExplainListenButton text={message} />
+            </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="outline" className="border-red text-red" onClick={retryInPlace}>
                 Tentar de novo

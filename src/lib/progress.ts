@@ -13,6 +13,10 @@ export type ProgressSnapshot = {
   xp: number
   completedUnits: string[]
   passedChallenges: string[]
+  placementCompleted: boolean
+  placementBand: string | null
+  placementHistory: { band: string; at: string }[]
+  seenTerms: string[]
 }
 
 export class ProgressError extends Error {
@@ -26,6 +30,10 @@ const emptySnapshot = (): ProgressSnapshot => ({
   xp: 0,
   completedUnits: [],
   passedChallenges: [],
+  placementCompleted: false,
+  placementBand: null,
+  placementHistory: [],
+  seenTerms: [],
 })
 
 function memoryStorage(): StorageLike {
@@ -57,6 +65,10 @@ export class ProgressStore {
   xp = 0
   completedUnits: string[] = []
   passedChallenges: string[] = []
+  placementCompleted = false
+  placementBand: string | null = null
+  placementHistory: { band: string; at: string }[] = []
+  seenTerms: string[] = []
   private storage: StorageLike
   private key: string
 
@@ -84,6 +96,18 @@ export class ProgressStore {
         : Array.isArray(data.passed_challenges)
           ? data.passed_challenges.map(String)
           : []
+      this.placementCompleted = Boolean(data.placementCompleted)
+      this.placementBand = typeof data.placementBand === 'string' ? data.placementBand : null
+      this.placementHistory = Array.isArray(data.placementHistory)
+        ? data.placementHistory.flatMap((entry) => {
+            if (!entry || typeof entry !== 'object') return []
+            const row = entry as Record<string, unknown>
+            const band = String(row.band ?? '')
+            if (!band) return []
+            return [{ band, at: String(row.at ?? '') }]
+          })
+        : []
+      this.seenTerms = Array.isArray(data.seenTerms) ? data.seenTerms.map(String) : []
     } catch (error) {
       throw new ProgressError(
         `Não foi possível ler o progresso salvo: ${error instanceof Error ? error.message : String(error)}`,
@@ -92,11 +116,7 @@ export class ProgressStore {
   }
 
   save(): void {
-    const payload: ProgressSnapshot = {
-      xp: this.xp,
-      completedUnits: [...this.completedUnits],
-      passedChallenges: [...this.passedChallenges],
-    }
+    const payload: ProgressSnapshot = this.snapshot()
     try {
       this.storage.setItem(this.key, JSON.stringify(payload))
     } catch (error) {
@@ -111,6 +131,10 @@ export class ProgressStore {
     this.xp = empty.xp
     this.completedUnits = []
     this.passedChallenges = []
+    this.placementCompleted = false
+    this.placementBand = null
+    this.placementHistory = []
+    this.seenTerms = []
     this.save()
   }
 
@@ -119,11 +143,21 @@ export class ProgressStore {
       xp: this.xp,
       completedUnits: [...this.completedUnits],
       passedChallenges: [...this.passedChallenges],
+      placementCompleted: this.placementCompleted,
+      placementBand: this.placementBand,
+      placementHistory: this.placementHistory.map((row) => ({ ...row })),
+      seenTerms: [...this.seenTerms],
     }
   }
 
   addXp(amount: number): void {
     this.xp += Math.max(0, amount)
+    this.save()
+  }
+
+  noteTerm(id: string): void {
+    if (!id || this.seenTerms.includes(id)) return
+    this.seenTerms.push(id)
     this.save()
   }
 
